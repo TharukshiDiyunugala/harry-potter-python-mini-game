@@ -910,13 +910,11 @@ class SortingHatGUI:
             fg="#FFFFFF"
         )
         
-        # Show result with slide-in animation
-        self.canvas.itemconfig("result", state="normal")
-        self.canvas.itemconfig("restart_btn", state="normal")
-        self.canvas.itemconfig("music_btn", state="normal")
+        # Show the four house castles and animate student walking to selected house
+        self.show_houses_and_walking_student(house)
         
-        # Animate result sliding in
-        self.slide_in_result(300, 350)
+        # Show result with slide-in animation after walking animation
+        self.root.after(4000, lambda: self.show_final_result_panel())
         
         # Re-enable button
         self.sort_button.config(state=tk.NORMAL)
@@ -928,11 +926,516 @@ class SortingHatGUI:
             self.canvas.coords(self.result_window, 450, current_y)
             self.root.after(20, lambda: self.slide_in_result(current_y, target_y))
     
+    def show_houses_and_walking_student(self, selected_house):
+        """Display 4 house castles and animate student walking to selected house"""
+        # Castle positions (left to right: Gryffindor, Hufflepuff, Ravenclaw, Slytherin)
+        castle_positions = {
+            "Gryffindor": 150,
+            "Hufflepuff": 350,
+            "Ravenclaw": 550,
+            "Slytherin": 750
+        }
+        
+        # Draw all 4 castles
+        for house_name, x_pos in castle_positions.items():
+            self.draw_castle(x_pos, 450, house_name, house_name == selected_house)
+        
+        # Create and animate student walking to selected house
+        target_x = castle_positions[selected_house]
+        self.create_walking_student(100, 500, target_x, selected_house)
+    
+    def draw_castle(self, x, y, house_name, is_selected):
+        """Draw a castle representation for a house"""
+        colors = self.house_colors[house_name]
+        base_color = colors["primary"]
+        glow_color = colors["glow"] if is_selected else colors["secondary"]
+        emoji = house_info[house_name]["emoji"]
+        
+        # Castle base (larger rectangle)
+        castle_base = self.canvas.create_rectangle(
+            x - 40, y + 20, x + 40, y + 80,
+            fill=base_color,
+            outline=glow_color,
+            width=3 if is_selected else 1,
+            tags="castle"
+        )
+        
+        # Castle towers (smaller rectangles on sides)
+        left_tower = self.canvas.create_rectangle(
+            x - 45, y, x - 20, y + 70,
+            fill=base_color,
+            outline=glow_color,
+            width=2 if is_selected else 1,
+            tags="castle"
+        )
+        
+        right_tower = self.canvas.create_rectangle(
+            x + 20, y, x + 45, y + 70,
+            fill=base_color,
+            outline=glow_color,
+            width=2 if is_selected else 1,
+            tags="castle"
+        )
+        
+        # Tower tops (triangles)
+        left_top = self.canvas.create_polygon(
+            x - 50, y, x - 32.5, y - 20, x - 15, y,
+            fill=glow_color,
+            outline=glow_color,
+            tags="castle"
+        )
+        
+        right_top = self.canvas.create_polygon(
+            x + 15, y, x + 32.5, y - 20, x + 50, y,
+            fill=glow_color,
+            outline=glow_color,
+            tags="castle"
+        )
+        
+        # Main tower roof
+        main_roof = self.canvas.create_polygon(
+            x - 45, y + 20, x, y - 10, x + 45, y + 20,
+            fill=glow_color,
+            outline=glow_color,
+            tags="castle"
+        )
+        
+        # Windows
+        for i in range(3):
+            window_y = y + 30 + (i * 15)
+            self.canvas.create_rectangle(
+                x - 10, window_y, x + 10, window_y + 10,
+                fill="#FFD700" if is_selected else "#555555",
+                outline="",
+                tags="castle"
+            )
+        
+        # House emoji/crest at top
+        self.canvas.create_text(
+            x, y - 25,
+            text=emoji,
+            font=("Helvetica", 24 if is_selected else 18),
+            tags="castle"
+        )
+        
+        # House name label
+        self.canvas.create_text(
+            x, y + 100,
+            text=house_name.upper(),
+            font=("Helvetica", 10, "bold"),
+            fill=glow_color,
+            tags="castle"
+        )
+        
+        # Add glow effect for selected house
+        if is_selected:
+            # Create glowing aura around selected castle
+            for i in range(3):
+                self.canvas.create_oval(
+                    x - 60 - i*5, y - 40 - i*5,
+                    x + 60 + i*5, y + 110 + i*5,
+                    outline=glow_color,
+                    width=1,
+                    tags="castle_glow"
+                )
+            
+            # Animate the glow
+            self.animate_castle_glow(0)
+    
+    def animate_castle_glow(self, step):
+        """Animate glowing effect around selected castle"""
+        if step < 40:
+            # Pulse effect
+            alpha = (math.sin(step * 0.3) + 1) / 2
+            self.root.after(50, lambda: self.animate_castle_glow(step + 1))
+    
+    def create_walking_student(self, start_x, start_y, target_x, house):
+        """Create and animate a 2D cartoon student walking to their house"""
+        colors = self.house_colors[house]
+        
+        # Student elements (stored with identifiers for animation)
+        student_elements = {
+            'body': [],
+            'legs': [],
+            'static': []
+        }
+        
+        # === CLOAK/ROBE (flowing, billowing design) ===
+        # Main cloak body - large flowing shape
+        cloak_main = self.canvas.create_polygon(
+            start_x - 20, start_y + 25,  # bottom left
+            start_x - 18, start_y - 5,   # left shoulder
+            start_x - 8, start_y - 15,   # left neck
+            start_x + 8, start_y - 15,   # right neck
+            start_x + 18, start_y - 5,   # right shoulder
+            start_x + 20, start_y + 25,  # bottom right
+            fill=colors["primary"],
+            outline=colors["glow"],
+            width=2,
+            tags="student"
+        )
+        student_elements['body'].append(cloak_main)
+        
+        # Cloak hood/cape flowing behind
+        cloak_back = self.canvas.create_polygon(
+            start_x - 15, start_y - 10,
+            start_x - 20, start_y - 5,
+            start_x - 22, start_y + 10,
+            start_x - 15, start_y + 5,
+            fill=colors["secondary"],
+            outline="",
+            tags="student"
+        )
+        student_elements['body'].append(cloak_back)
+        
+        # Cloak inner lining (lighter shade)
+        cloak_inner = self.canvas.create_polygon(
+            start_x - 15, start_y + 25,
+            start_x - 10, start_y - 5,
+            start_x + 10, start_y - 5,
+            start_x + 15, start_y + 25,
+            fill=colors["secondary"],
+            outline="",
+            tags="student"
+        )
+        student_elements['body'].append(cloak_inner)
+        
+        # === HEAD ===
+        # Head (larger, more cartoon-like)
+        head = self.canvas.create_oval(
+            start_x - 10, start_y - 35,
+            start_x + 10, start_y - 15,
+            fill="#FFE4C4",
+            outline="#D2B48C",
+            width=1,
+            tags="student"
+        )
+        student_elements['static'].append(head)
+        
+        # Eyes
+        left_eye = self.canvas.create_oval(
+            start_x - 6, start_y - 28,
+            start_x - 3, start_y - 25,
+            fill="#2C2C2C",
+            outline="",
+            tags="student"
+        )
+        student_elements['static'].append(left_eye)
+        
+        right_eye = self.canvas.create_oval(
+            start_x + 3, start_y - 28,
+            start_x + 6, start_y - 25,
+            fill="#2C2C2C",
+            outline="",
+            tags="student"
+        )
+        student_elements['static'].append(right_eye)
+        
+        # Smile
+        smile = self.canvas.create_arc(
+            start_x - 5, start_y - 24,
+            start_x + 5, start_y - 18,
+            start=200, extent=140,
+            style=tk.ARC,
+            outline="#8B4513",
+            width=2,
+            tags="student"
+        )
+        student_elements['static'].append(smile)
+        
+        # === WIZARD HAT ===
+        # Hat cone
+        hat = self.canvas.create_polygon(
+            start_x - 14, start_y - 35,
+            start_x - 5, start_y - 50,
+            start_x + 4, start_y - 35,
+            fill="#2C2C2C",
+            outline="#FFD700",
+            width=1,
+            tags="student"
+        )
+        student_elements['static'].append(hat)
+        
+        # Hat brim (wider, more visible)
+        hat_brim = self.canvas.create_oval(
+            start_x - 14, start_y - 37,
+            start_x + 14, start_y - 31,
+            fill="#2C2C2C",
+            outline="#FFD700",
+            width=1,
+            tags="student"
+        )
+        student_elements['static'].append(hat_brim)
+        
+        # Star on hat
+        hat_star = self.canvas.create_text(
+            start_x - 3, start_y - 48,
+            text="⭐",
+            font=("Helvetica", 10),
+            tags="student"
+        )
+        student_elements['static'].append(hat_star)
+        
+        # === LEGS (for walking animation) ===
+        # Left leg
+        left_leg = self.canvas.create_rectangle(
+            start_x - 8, start_y + 20,
+            start_x - 3, start_y + 35,
+            fill="#4A4A4A",
+            outline="",
+            tags="student"
+        )
+        student_elements['legs'].append(left_leg)
+        
+        # Left foot
+        left_foot = self.canvas.create_oval(
+            start_x - 10, start_y + 33,
+            start_x - 1, start_y + 38,
+            fill="#1C1C1C",
+            outline="",
+            tags="student"
+        )
+        student_elements['legs'].append(left_foot)
+        
+        # Right leg
+        right_leg = self.canvas.create_rectangle(
+            start_x + 3, start_y + 20,
+            start_x + 8, start_y + 35,
+            fill="#4A4A4A",
+            outline="",
+            tags="student"
+        )
+        student_elements['legs'].append(right_leg)
+        
+        # Right foot
+        right_foot = self.canvas.create_oval(
+            start_x + 1, start_y + 33,
+            start_x + 10, start_y + 38,
+            fill="#1C1C1C",
+            outline="",
+            tags="student"
+        )
+        student_elements['legs'].append(right_foot)
+        
+        # === WAND ===
+        wand = self.canvas.create_line(
+            start_x + 12, start_y,
+            start_x + 25, start_y - 10,
+            fill="#8B4513",
+            width=3,
+            tags="student"
+        )
+        student_elements['static'].append(wand)
+        
+        # Wand tip glow
+        wand_glow = self.canvas.create_oval(
+            start_x + 23, start_y - 12,
+            start_x + 27, start_y - 8,
+            fill="#FFD700",
+            outline="#FFA500",
+            width=1,
+            tags="student"
+        )
+        student_elements['static'].append(wand_glow)
+        
+        # Sparkles around wand (more magical)
+        sparkle_positions = [
+            (start_x + 28, start_y - 12),
+            (start_x + 26, start_y - 15),
+            (start_x + 30, start_y - 8),
+            (start_x + 32, start_y - 11)
+        ]
+        for sx, sy in sparkle_positions:
+            sparkle = self.canvas.create_text(
+                sx, sy,
+                text=random.choice(["✨", "⭐", "💫"]),
+                font=("Helvetica", 10),
+                tags="student"
+            )
+            student_elements['static'].append(sparkle)
+        
+        # === HOUSE SCARF (optional detail) ===
+        scarf = self.canvas.create_rectangle(
+            start_x - 8, start_y - 14,
+            start_x + 8, start_y - 8,
+            fill=colors["glow"],
+            outline="",
+            tags="student"
+        )
+        student_elements['body'].append(scarf)
+        
+        # Flatten all elements into a single list for animation
+        all_elements = (student_elements['body'] + 
+                       student_elements['legs'] + 
+                       student_elements['static'])
+        
+        # Store leg elements separately for walking animation
+        self.student_leg_elements = student_elements['legs']
+        
+        # Start walking animation
+        self.animate_walking_student(all_elements, start_x, start_y, target_x, 0)
+    
+    def animate_walking_student(self, elements, current_x, y, target_x, step):
+        """Animate 2D cartoon student walking to their house with leg movement"""
+        if current_x < target_x - 50:
+            # Move student to the right
+            speed = 4
+            current_x += speed
+            
+            # Bobbing effect while walking (more pronounced for cartoon style)
+            bob_offset = math.sin(step * 0.4) * 4
+            
+            # Leg walking animation (alternating leg positions)
+            if hasattr(self, 'student_leg_elements') and len(self.student_leg_elements) == 4:
+                leg_swing = math.sin(step * 0.5) * 3
+                
+                # Animate left leg (elements 0 and 1)
+                try:
+                    # Left leg
+                    left_leg_coords = self.canvas.coords(self.student_leg_elements[0])
+                    if len(left_leg_coords) == 4:
+                        # Swing forward/back
+                        self.canvas.coords(self.student_leg_elements[0],
+                            left_leg_coords[0] + speed,
+                            left_leg_coords[1] + leg_swing,
+                            left_leg_coords[2] + speed,
+                            left_leg_coords[3])
+                    
+                    # Left foot
+                    left_foot_coords = self.canvas.coords(self.student_leg_elements[1])
+                    if len(left_foot_coords) == 4:
+                        self.canvas.coords(self.student_leg_elements[1],
+                            left_foot_coords[0] + speed,
+                            left_foot_coords[1] + leg_swing,
+                            left_foot_coords[2] + speed,
+                            left_foot_coords[3] + leg_swing)
+                    
+                    # Right leg (opposite movement)
+                    right_leg_coords = self.canvas.coords(self.student_leg_elements[2])
+                    if len(right_leg_coords) == 4:
+                        self.canvas.coords(self.student_leg_elements[2],
+                            right_leg_coords[0] + speed,
+                            right_leg_coords[1] - leg_swing,
+                            right_leg_coords[2] + speed,
+                            right_leg_coords[3])
+                    
+                    # Right foot
+                    right_foot_coords = self.canvas.coords(self.student_leg_elements[3])
+                    if len(right_foot_coords) == 4:
+                        self.canvas.coords(self.student_leg_elements[3],
+                            right_foot_coords[0] + speed,
+                            right_foot_coords[1] - leg_swing,
+                            right_foot_coords[2] + speed,
+                            right_foot_coords[3] - leg_swing)
+                except:
+                    pass
+            
+            # Update all other student element positions (body, head, cloak, etc.)
+            for element in elements:
+                if element not in getattr(self, 'student_leg_elements', []):
+                    try:
+                        elem_type = self.canvas.type(element)
+                        
+                        if elem_type == "polygon":
+                            coords = self.canvas.coords(element)
+                            new_coords = []
+                            for i in range(0, len(coords), 2):
+                                new_coords.append(coords[i] + speed)
+                                new_coords.append(coords[i + 1] + bob_offset * 0.3)
+                            self.canvas.coords(element, *new_coords)
+                            
+                        elif elem_type in ["oval", "rectangle"]:
+                            coords = self.canvas.coords(element)
+                            if len(coords) == 4:
+                                self.canvas.coords(element, 
+                                    coords[0] + speed, coords[1] + bob_offset * 0.3,
+                                    coords[2] + speed, coords[3] + bob_offset * 0.3)
+                                    
+                        elif elem_type == "line":
+                            coords = self.canvas.coords(element)
+                            if len(coords) == 4:
+                                self.canvas.coords(element,
+                                    coords[0] + speed, coords[1] + bob_offset * 0.3,
+                                    coords[2] + speed, coords[3] + bob_offset * 0.3)
+                                    
+                        elif elem_type in ["text", "arc"]:
+                            coords = self.canvas.coords(element)
+                            if len(coords) >= 2:
+                                self.canvas.coords(element, 
+                                    coords[0] + speed, coords[1] + bob_offset * 0.3)
+                    except:
+                        pass
+            
+            # Animate cloak flowing effect (add slight wave to cloak polygons)
+            cloak_wave = math.sin(step * 0.6) * 2
+            
+            # Continue animation
+            self.root.after(40, lambda: self.animate_walking_student(
+                elements, current_x, y, target_x, step + 1))
+        else:
+            # Student reached the castle - make them disappear into it
+            self.student_enter_castle(elements)
+    
+    def student_enter_castle(self, elements):
+        """Animate student entering the castle"""
+        # Fade out and shrink effect
+        self.fade_out_student(elements, 0)
+    
+    def fade_out_student(self, elements, step):
+        """Fade out student as they enter the castle"""
+        if step < 10:
+            # Scale down elements
+            for element in elements:
+                try:
+                    if self.canvas.type(element) == "polygon" or self.canvas.type(element) == "oval":
+                        coords = self.canvas.coords(element)
+                        if len(coords) >= 4:
+                            # Calculate center
+                            if self.canvas.type(element) == "polygon":
+                                center_x = sum(coords[i] for i in range(0, len(coords), 2)) / (len(coords) / 2)
+                                center_y = sum(coords[i] for i in range(1, len(coords), 2)) / (len(coords) / 2)
+                                # Shrink toward center
+                                new_coords = []
+                                for i in range(0, len(coords), 2):
+                                    new_coords.append(center_x + (coords[i] - center_x) * 0.9)
+                                    new_coords.append(center_y + (coords[i + 1] - center_y) * 0.9)
+                                self.canvas.coords(element, *new_coords)
+                            else:
+                                center_x = (coords[0] + coords[2]) / 2
+                                center_y = (coords[1] + coords[3]) / 2
+                                width = (coords[2] - coords[0]) * 0.9
+                                height = (coords[3] - coords[1]) * 0.9
+                                self.canvas.coords(element,
+                                    center_x - width/2, center_y - height/2,
+                                    center_x + width/2, center_y + height/2)
+                except:
+                    pass
+            
+            self.root.after(50, lambda: self.fade_out_student(elements, step + 1))
+        else:
+            # Remove student elements
+            self.canvas.delete("student")
+    
+    def show_final_result_panel(self):
+        """Show the final result panel after walking animation"""
+        # Show result with slide-in animation
+        self.canvas.itemconfig("result", state="normal")
+        self.canvas.itemconfig("restart_btn", state="normal")
+        self.canvas.itemconfig("music_btn", state="normal")
+        
+        # Animate result sliding in
+        self.slide_in_result(100, 200)
+    
     def restart(self):
         """Restart the sorting process with fade out animation"""
         # Hide result elements
         self.canvas.itemconfig("result", state="hidden")
         self.canvas.itemconfig("restart_btn", state="hidden")
+        
+        # Clear castle and student animations
+        self.canvas.delete("castle")
+        self.canvas.delete("castle_glow")
+        self.canvas.delete("student")
         
         # Reset and show input elements
         self.name_entry.delete(0, tk.END)
