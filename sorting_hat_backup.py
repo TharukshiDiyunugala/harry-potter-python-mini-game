@@ -277,7 +277,7 @@ class SortingHatGUI:
         self.root.geometry("900x700")
         
         # Configure window
-        self.root.configure(bg="#0a0a1a")
+        self.root.configure(bg="#F5F5DC")
         self.root.resizable(False, False)
         
         # Music state
@@ -289,6 +289,13 @@ class SortingHatGUI:
         self.glow_direction = 1
         self.title_y = -100
         self.content_alpha = 0
+        
+        # Maze variables
+        self.maze_active = False
+        self.player_pos = [1, 1]
+        self.maze = []
+        self.maze_size = 15
+        self.cell_size = 40
         
         # Mini character animation variables
         self.character_visible = False
@@ -309,7 +316,7 @@ class SortingHatGUI:
             self.root,
             width=900,
             height=700,
-            bg="#0a0a1a",
+            bg="#F5F5DC",
             highlightthickness=0
         )
         self.canvas.pack(fill=tk.BOTH, expand=True)
@@ -331,7 +338,7 @@ class SortingHatGUI:
             450, self.title_y,
             text="🎩 HOGWARTS SORTING HAT 🎩",
             font=("Helvetica", 32, "bold"),
-            fill="#FFD700",
+            fill="#8B4513",
             tags="title"
         )
         
@@ -339,7 +346,7 @@ class SortingHatGUI:
             450, 120,
             text="✨ The Magical Sorting Ceremony ✨",
             font=("Helvetica", 14, "italic"),
-            fill="#FFFFFF",
+            fill="#4B0082",
             tags="subtitle",
             state="hidden"
         )
@@ -347,9 +354,9 @@ class SortingHatGUI:
         # Glowing frame for welcome message
         self.welcome_frame = tk.Frame(
             self.canvas,
-            bg="#1a1a3e",
-            relief=tk.FLAT,
-            borderwidth=0
+            bg="#FFF8DC",
+            relief=tk.RIDGE,
+            borderwidth=3
         )
         self.welcome_window = self.canvas.create_window(
             450, 250,
@@ -362,8 +369,8 @@ class SortingHatGUI:
             self.welcome_frame,
             text="Welcome to Hogwarts!\n\nThe Sorting Hat will determine\nwhich house you belong to...\n\n🦁 Gryffindor  🦡 Hufflepuff\n🦅 Ravenclaw  🐍 Slytherin",
             font=("Helvetica", 12),
-            fg="#FFFFFF",
-            bg="#1a1a3e",
+            fg="#4B0082",
+            bg="#FFF8DC",
             justify=tk.CENTER,
             pady=20,
             padx=30
@@ -371,7 +378,7 @@ class SortingHatGUI:
         self.welcome_text.pack()
         
         # Name entry with glow effect
-        self.entry_frame = tk.Frame(self.canvas, bg="#0a0a1a")
+        self.entry_frame = tk.Frame(self.canvas, bg="#F5F5DC")
         self.entry_window = self.canvas.create_window(
             450, 420,
             window=self.entry_frame,
@@ -382,9 +389,9 @@ class SortingHatGUI:
         self.name_label = tk.Label(
             self.entry_frame,
             text="Enter your name:",
-            font=("Helvetica", 13),
-            fg="#FFD700",
-            bg="#0a0a1a"
+            font=("Helvetica", 13, "bold"),
+            fg="#8B4513",
+            bg="#F5F5DC"
         )
         self.name_label.pack(pady=5)
         
@@ -394,10 +401,10 @@ class SortingHatGUI:
             font=("Helvetica", 16),
             width=25,
             justify=tk.CENTER,
-            bg="#1a1a3e",
-            fg="#FFFFFF",
-            insertbackground="#FFD700",
-            relief=tk.FLAT,
+            bg="#FFFFFF",
+            fg="#000000",
+            insertbackground="#8B4513",
+            relief=tk.SOLID,
             borderwidth=2
         )
         self.name_entry.pack(pady=10, ipady=8)
@@ -454,7 +461,7 @@ class SortingHatGUI:
         )
         
         # Result frame
-        self.result_frame = tk.Frame(self.canvas, bg="#0a0a1a")
+        self.result_frame = tk.Frame(self.canvas, bg="#F5F5DC")
         self.result_window = self.canvas.create_window(
             450, 350,
             window=self.result_frame,
@@ -466,13 +473,36 @@ class SortingHatGUI:
             self.result_frame,
             text="",
             font=("Helvetica", 18, "bold"),
-            fg="white",
-            bg="#0a0a1a",
+            fg="#000000",
+            bg="#F5F5DC",
             justify=tk.CENTER,
             pady=30,
             padx=40
         )
         self.result_label.pack()
+        
+        # Maze button
+        self.maze_button = tk.Button(
+            self.canvas,
+            text="🌟 Enter the Maze Challenge 🌟",
+            command=self.start_maze,
+            font=("Helvetica", 14, "bold"),
+            bg="#4169E1",
+            fg="white",
+            activebackground="#1E90FF",
+            activeforeground="white",
+            relief=tk.RAISED,
+            borderwidth=3,
+            padx=30,
+            pady=12,
+            cursor="hand2"
+        )
+        self.maze_button_window = self.canvas.create_window(
+            450, 560,
+            window=self.maze_button,
+            tags="maze_btn",
+            state="hidden"
+        )
         
         # Restart button
         self.restart_button = tk.Button(
@@ -503,15 +533,19 @@ class SortingHatGUI:
         self.music_button.bind("<Leave>", lambda e: self.on_button_leave(self.music_button, "#2a2a4e"))
         self.restart_button.bind("<Enter>", lambda e: self.on_button_hover(self.restart_button, "#3a3a6e"))
         self.restart_button.bind("<Leave>", lambda e: self.on_button_leave(self.restart_button, "#2a2a4e"))
+        self.maze_button.bind("<Enter>", lambda e: self.on_button_hover(self.maze_button, "#1E90FF"))
+        self.maze_button.bind("<Leave>", lambda e: self.on_button_leave(self.maze_button, "#4169E1"))
     
     def create_gradient_background(self):
         """Create animated gradient background"""
-        # Create gradient rectangles
+        # Create gradient rectangles for light theme
         for i in range(50):
             y = i * 14
-            # Calculate color gradient from dark blue to dark purple
-            color_val = int(10 + (i * 0.3))
-            color = f"#{color_val:02x}{color_val:02x}{min(color_val + 10, 40):02x}"
+            # Calculate color gradient from light beige to light gold
+            r = 245 - int(i * 0.5)
+            g = 245 - int(i * 0.8)
+            b = 220 - int(i * 1.5)
+            color = f"#{max(r, 220):02x}{max(g, 210):02x}{max(b, 180):02x}"
             self.canvas.create_rectangle(
                 0, y, 900, y + 14,
                 fill=color,
@@ -529,7 +563,7 @@ class SortingHatGUI:
             particle = {
                 'id': self.canvas.create_oval(
                     x, y, x + size, y + size,
-                    fill="#FFD700",
+                    fill="#DAA520",
                     outline="",
                     tags="particle"
                 ),
@@ -568,7 +602,11 @@ class SortingHatGUI:
             # Pulse effect
             alpha_val = int(128 + 127 * math.sin(time.time() * 2 + particle['x']))
             try:
-                self.canvas.itemconfig(particle['id'], fill=f"#{alpha_val:02x}{alpha_val:02x}00")
+                # Golden particles for light theme
+                r = 218
+                g = max(165 - (255 - alpha_val) // 2, 100)
+                b = 32
+                self.canvas.itemconfig(particle['id'], fill=f"#{r:02x}{g:02x}{b:02x}")
             except:
                 pass
         
@@ -638,7 +676,7 @@ class SortingHatGUI:
             )
             
             # Speech bubble
-            bubble_frame = tk.Frame(self.canvas, bg="#FFD700", relief=tk.RIDGE, borderwidth=2)
+            bubble_frame = tk.Frame(self.canvas, bg="#FFEFD5", relief=tk.RIDGE, borderwidth=2)
             bubble_window = self.canvas.create_window(
                 750, 400,
                 window=bubble_frame,
@@ -649,9 +687,9 @@ class SortingHatGUI:
             bubble_text = tk.Label(
                 bubble_frame,
                 text="  Nice to\n  meet you!  ",
-                font=("Helvetica", 10, "italic"),
-                fg="#000000",
-                bg="#FFD700",
+                font=("Helvetica", 10, "italic", "bold"),
+                fg="#4B0082",
+                bg="#FFEFD5",
                 justify=tk.LEFT
             )
             bubble_text.pack(padx=5, pady=3)
@@ -794,15 +832,15 @@ class SortingHatGUI:
     
     def show_thinking_animation(self, name):
         """Display animated thinking process"""
-        thinking_frame = tk.Frame(self.canvas, bg="#1a1a3e", padx=40, pady=30)
+        thinking_frame = tk.Frame(self.canvas, bg="#FFF8DC", padx=40, pady=30, relief=tk.RIDGE, borderwidth=3)
         thinking_window = self.canvas.create_window(450, 350, window=thinking_frame, tags="thinking")
         
         thinking_label = tk.Label(
             thinking_frame,
             text=f"🤔 Hmm... {name}...\nDifficult. Very difficult...\n\n✨ Analyzing your traits... ✨",
-            font=("Helvetica", 16),
-            fg="#FFD700",
-            bg="#1a1a3e",
+            font=("Helvetica", 16, "bold"),
+            fg="#4B0082",
+            bg="#FFF8DC",
             justify=tk.CENTER
         )
         thinking_label.pack()
@@ -907,7 +945,7 @@ class SortingHatGUI:
         self.result_label.config(
             text=result_text,
             bg=colors["primary"],
-            fg="#FFFFFF"
+            fg="#FFFFFF"  # Keep white text on house color background
         )
         
         # Show the four house castles and animate student walking to selected house
@@ -1422,6 +1460,7 @@ class SortingHatGUI:
         self.canvas.itemconfig("result", state="normal")
         self.canvas.itemconfig("restart_btn", state="normal")
         self.canvas.itemconfig("music_btn", state="normal")
+        self.canvas.itemconfig("maze_btn", state="normal")
         
         # Animate result sliding in
         self.slide_in_result(100, 200)
@@ -1441,14 +1480,257 @@ class SortingHatGUI:
         self.name_entry.delete(0, tk.END)
         self.name_entry.insert(0, "Student")
         
-        self.result_frame.config(bg="#0a0a1a", relief=tk.FLAT, borderwidth=0)
-        self.result_label.config(text="", bg="#0a0a1a")
+        self.result_frame.config(bg="#F5F5DC", relief=tk.FLAT, borderwidth=0)
+        self.result_label.config(text="", bg="#F5F5DC")
+        
+        # Hide maze button
+        self.canvas.itemconfig("maze_btn", state="hidden")
         
         # Fade in input elements
         self.canvas.itemconfig("welcome", state="normal")
         self.canvas.itemconfig("entry", state="normal")
         self.canvas.itemconfig("sort_btn", state="normal")
         self.canvas.itemconfig("music_btn", state="normal")
+    
+    def start_maze(self):
+        """Start the maze challenge"""
+        # Hide all previous elements
+        self.canvas.itemconfig("result", state="hidden")
+        self.canvas.itemconfig("restart_btn", state="hidden")
+        self.canvas.itemconfig("music_btn", state="hidden")
+        self.canvas.itemconfig("maze_btn", state="hidden")
+        self.canvas.delete("castle")
+        self.canvas.delete("castle_glow")
+        
+        # Initialize maze
+        self.maze_active = True
+        self.generate_maze()
+        self.draw_maze()
+        
+        # Bind arrow keys
+        self.root.bind("<Up>", lambda e: self.move_player(0, -1))
+        self.root.bind("<Down>", lambda e: self.move_player(0, 1))
+        self.root.bind("<Left>", lambda e: self.move_player(-1, 0))
+        self.root.bind("<Right>", lambda e: self.move_player(1, 0))
+        
+        # Show instructions
+        self.show_maze_instructions()
+    
+    def generate_maze(self):
+        """Generate a random maze using recursive backtracking"""
+        # Initialize maze with walls
+        size = self.maze_size
+        self.maze = [[1 for _ in range(size)] for _ in range(size)]
+        
+        # Start from position (1, 1)
+        start_x, start_y = 1, 1
+        self.maze[start_y][start_x] = 0
+        
+        # Recursive backtracking
+        stack = [(start_x, start_y)]
+        
+        while stack:
+            x, y = stack[-1]
+            neighbors = []
+            
+            # Check all 4 directions (2 cells away)
+            for dx, dy in [(0, -2), (0, 2), (-2, 0), (2, 0)]:
+                nx, ny = x + dx, y + dy
+                if 1 <= nx < size - 1 and 1 <= ny < size - 1 and self.maze[ny][nx] == 1:
+                    neighbors.append((nx, ny, dx, dy))
+            
+            if neighbors:
+                nx, ny, dx, dy = random.choice(neighbors)
+                # Remove wall between current cell and chosen neighbor
+                self.maze[y + dy // 2][x + dx // 2] = 0
+                self.maze[ny][nx] = 0
+                stack.append((nx, ny))
+            else:
+                stack.pop()
+        
+        # Set start and end positions
+        self.player_pos = [1, 1]
+        self.maze[1][1] = 0
+        self.maze[size - 2][size - 2] = 0  # Exit
+        self.exit_pos = [size - 2, size - 2]
+    
+    def draw_maze(self):
+        """Draw the maze on canvas"""
+        self.canvas.delete("maze")
+        
+        # Calculate offset to center maze
+        maze_width = self.maze_size * self.cell_size
+        offset_x = (900 - maze_width) // 2
+        offset_y = 80
+        
+        # Draw title
+        self.canvas.create_text(
+            450, 40,
+            text="🌟 MAGICAL MAZE CHALLENGE 🌟",
+            font=("Helvetica", 20, "bold"),
+            fill="#4B0082",
+            tags="maze"
+        )
+        
+        # Draw maze cells
+        for y in range(self.maze_size):
+            for x in range(self.maze_size):
+                x1 = offset_x + x * self.cell_size
+                y1 = offset_y + y * self.cell_size
+                x2 = x1 + self.cell_size
+                y2 = y1 + self.cell_size
+                
+                if self.maze[y][x] == 1:
+                    # Wall
+                    self.canvas.create_rectangle(
+                        x1, y1, x2, y2,
+                        fill="#8B4513",
+                        outline="#654321",
+                        tags="maze"
+                    )
+                else:
+                    # Path
+                    self.canvas.create_rectangle(
+                        x1, y1, x2, y2,
+                        fill="#FFFACD",
+                        outline="#DEB887",
+                        tags="maze"
+                    )
+        
+        # Draw exit
+        exit_x1 = offset_x + self.exit_pos[0] * self.cell_size
+        exit_y1 = offset_y + self.exit_pos[1] * self.cell_size
+        exit_x2 = exit_x1 + self.cell_size
+        exit_y2 = exit_y1 + self.cell_size
+        self.canvas.create_rectangle(
+            exit_x1, exit_y1, exit_x2, exit_y2,
+            fill="#90EE90",
+            outline="#228B22",
+            width=3,
+            tags="maze"
+        )
+        self.canvas.create_text(
+            exit_x1 + self.cell_size // 2,
+            exit_y1 + self.cell_size // 2,
+            text="🏆",
+            font=("Helvetica", 24),
+            tags="maze"
+        )
+        
+        # Draw player
+        self.draw_player()
+    
+    def draw_player(self):
+        """Draw the player on the maze"""
+        self.canvas.delete("player")
+        
+        maze_width = self.maze_size * self.cell_size
+        offset_x = (900 - maze_width) // 2
+        offset_y = 80
+        
+        x = offset_x + self.player_pos[0] * self.cell_size + self.cell_size // 2
+        y = offset_y + self.player_pos[1] * self.cell_size + self.cell_size // 2
+        
+        # Draw player as a wizard
+        self.canvas.create_text(
+            x, y,
+            text="🧙",
+            font=("Helvetica", 30),
+            tags="player"
+        )
+    
+    def move_player(self, dx, dy):
+        """Move the player in the maze"""
+        if not self.maze_active:
+            return
+        
+        new_x = self.player_pos[0] + dx
+        new_y = self.player_pos[1] + dy
+        
+        # Check bounds and walls
+        if (0 <= new_x < self.maze_size and 
+            0 <= new_y < self.maze_size and 
+            self.maze[new_y][new_x] == 0):
+            
+            self.player_pos[0] = new_x
+            self.player_pos[1] = new_y
+            self.draw_player()
+            
+            # Check if reached exit
+            if self.player_pos == self.exit_pos:
+                self.maze_completed()
+    
+    def show_maze_instructions(self):
+        """Show maze instructions"""
+        instructions = tk.Frame(self.canvas, bg="#FFF8DC", relief=tk.RIDGE, borderwidth=3)
+        instructions_window = self.canvas.create_window(
+            450, 680,
+            window=instructions,
+            tags="maze"
+        )
+        
+        instructions_label = tk.Label(
+            instructions,
+            text="Use Arrow Keys ⬆️⬇️⬅️➡️ to navigate | Find the Trophy 🏆",
+            font=("Helvetica", 11, "bold"),
+            fg="#4B0082",
+            bg="#FFF8DC",
+            padx=20,
+            pady=8
+        )
+        instructions_label.pack()
+    
+    def maze_completed(self):
+        """Handle maze completion"""
+        self.maze_active = False
+        
+        # Show congratulations
+        congrats_frame = tk.Frame(self.canvas, bg="#FFD700", relief=tk.RIDGE, borderwidth=5)
+        congrats_window = self.canvas.create_window(450, 350, window=congrats_frame, tags="maze")
+        
+        congrats_label = tk.Label(
+            congrats_frame,
+            text="🎉 CONGRATULATIONS! 🎉\\n\\nYou've successfully completed\\nthe Magical Maze Challenge!\\n\\n⭐ Well Done, Young Wizard! ⭐",
+            font=("Helvetica", 16, "bold"),
+            fg="#4B0082",
+            bg="#FFD700",
+            justify=tk.CENTER,
+            padx=40,
+            pady=30
+        )
+        congrats_label.pack()
+        
+        # Add return button
+        return_button = tk.Button(
+            self.canvas,
+            text="🔄 Return to Sorting Hat",
+            command=self.return_from_maze,
+            font=("Helvetica", 12, "bold"),
+            bg="#8B0000",
+            fg="white",
+            activebackground="#B22222",
+            activeforeground="white",
+            relief=tk.RAISED,
+            padx=25,
+            pady=12,
+            cursor="hand2"
+        )
+        return_window = self.canvas.create_window(450, 500, window=return_button, tags="maze")
+    
+    def return_from_maze(self):
+        """Return to the main screen"""
+        self.canvas.delete("maze")
+        self.canvas.delete("player")
+        self.maze_active = False
+        
+        # Unbind arrow keys
+        self.root.unbind("<Up>")
+        self.root.unbind("<Down>")
+        self.root.unbind("<Left>")
+        self.root.unbind("<Right>")
+        
+        # Restart the sorting
+        self.restart()
 
 def run_gui():
     """Run the GUI version of the game"""
