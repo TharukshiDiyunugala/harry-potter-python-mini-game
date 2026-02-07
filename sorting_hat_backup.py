@@ -1762,6 +1762,23 @@ class SortingHatGUI:
         )
         instructions_label.pack()
         
+        # Add back button to return from maze
+        back_button = tk.Button(
+            self.canvas,
+            text="⬅️ Back",
+            command=self.return_from_maze,
+            font=("Georgia", 11, "bold"),
+            bg="#4a4458",
+            fg="#FFD700",
+            activebackground="#5a5468",
+            activeforeground="#FFE55C",
+            relief=tk.FLAT,
+            padx=20,
+            pady=10,
+            cursor="hand2"
+        )
+        back_window = self.canvas.create_window(100, 720, window=back_button, tags="maze")
+        
         # Ensure music button stays on top
         self.canvas.tag_raise("persistent_music")
     
