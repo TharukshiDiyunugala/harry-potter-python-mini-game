@@ -273,11 +273,11 @@ class SortingHatGUI:
     
     def __init__(self, root):
         self.root = root
-        self.root.title("Hogwarts Sorting Hat Ceremony")
-        self.root.geometry("1000x750")
+        self.root.title("⚡ Hogwarts Sorting Hat Ceremony ⚡")
+        self.root.geometry("1200x800")
         
         # Configure window
-        self.root.configure(bg="#1a1a2e")
+        self.root.configure(bg="#0a0a0f")
         self.root.resizable(False, False)
         
         # Music state
@@ -289,6 +289,11 @@ class SortingHatGUI:
         self.glow_direction = 1
         self.title_y = -100
         self.content_alpha = 0
+        self.background_animation_step = 0
+        
+        # Current screen theme
+        self.current_theme = "welcome"  # welcome, sorting, result, maze
+        self.current_house = None
         
         # Maze variables
         self.maze_active = False
@@ -303,26 +308,43 @@ class SortingHatGUI:
         self.character_bounce_direction = 1
         self.character_elements = []
         
-        # House colors with gradients - Professional palette
+        # House colors with gradients - Professional palette with richer tones
         self.house_colors = {
-            "Gryffindor": {"primary": "#9C1203", "secondary": "#F4C430", "glow": "#FFD700", "dark": "#6B0504"},
-            "Hufflepuff": {"primary": "#F0C75E", "secondary": "#372E29", "glow": "#FFE55C", "dark": "#C19B3B"},
-            "Ravenclaw": {"primary": "#0E1A40", "secondary": "#946B2D", "glow": "#5DADE2", "dark": "#0B1229"},
-            "Slytherin": {"primary": "#1A472A", "secondary": "#AAAAAA", "glow": "#5DBE71", "dark": "#0F2A19"}
+            "Gryffindor": {
+                "primary": "#740001", "secondary": "#D3A625", "glow": "#FFCC00", 
+                "dark": "#460000", "accent": "#AE0001", "light": "#FFC500",
+                "bg_start": "#1a0505", "bg_end": "#4a0808"
+            },
+            "Hufflepuff": {
+                "primary": "#FFDB00", "secondary": "#000000", "glow": "#FFE55C", 
+                "dark": "#C19B3B", "accent": "#60605C", "light": "#FFF4A3",
+                "bg_start": "#1a1508", "bg_end": "#4a3820"
+            },
+            "Ravenclaw": {
+                "primary": "#0E1A40", "secondary": "#946B2D", "glow": "#5DADE2", 
+                "dark": "#0B1229", "accent": "#222F5B", "light": "#87CEEB",
+                "bg_start": "#050a1a", "bg_end": "#0f1f3a"
+            },
+            "Slytherin": {
+                "primary": "#1A472A", "secondary": "#5D5D5D", "glow": "#5DBE71", 
+                "dark": "#0F2A19", "accent": "#2A623D", "light": "#A8E6A3",
+                "bg_start": "#0a150f", "bg_end": "#1a3025"
+            }
         }
         
-        # Create canvas for custom drawing
+        # Create canvas for custom drawing with larger size
         self.canvas = tk.Canvas(
             self.root,
-            width=1000,
-            height=750,
-            bg="#1a1a2e",
+            width=1200,
+            height=800,
+            bg="#0a0a0f",
             highlightthickness=0
         )
         self.canvas.pack(fill=tk.BOTH, expand=True)
         
         self.create_widgets()
         self.start_animations()
+        self.animate_background_pattern()
     
     def create_widgets(self):
         """Create all GUI widgets with professional animation-ready structure"""
@@ -336,19 +358,38 @@ class SortingHatGUI:
         # === PERSISTENT MUSIC SPEAKER BUTTON (Top Right Corner) ===
         self.create_persistent_music_button()
         
-        # Title with fade-in animation - Professional styling
-        self.title_text = self.canvas.create_text(
-            500, self.title_y,
+        # Title with fade-in animation - Professional styling with shadow
+        # Title shadow for depth
+        self.title_shadow = self.canvas.create_text(
+            603, self.title_y + 3,
             text="🎩 HOGWARTS SORTING HAT 🎩",
-            font=("Copperplate Gothic Bold", 36, "bold"),
-            fill="#F4C430",
+            font=("Copperplate Gothic Bold", 42, "bold"),
+            fill="#000000",
             tags="title"
         )
         
-        self.subtitle_text = self.canvas.create_text(
-            500, 120,
+        self.title_text = self.canvas.create_text(
+            600, self.title_y,
+            text="🎩 HOGWARTS SORTING HAT 🎩",
+            font=("Copperplate Gothic Bold", 42, "bold"),
+            fill="#FFD700",
+            tags="title"
+        )
+        
+        # Subtitle shadow
+        self.subtitle_shadow = self.canvas.create_text(
+            602, 132,
             text="✨ The Magical Sorting Ceremony ✨",
-            font=("Georgia", 16, "italic"),
+            font=("Palatino Linotype", 18, "italic"),
+            fill="#000000",
+            tags="subtitle",
+            state="hidden"
+        )
+        
+        self.subtitle_text = self.canvas.create_text(
+            600, 130,
+            text="✨ The Magical Sorting Ceremony ✨",
+            font=("Palatino Linotype", 18, "italic"),
             fill="#E8D7C3",
             tags="subtitle",
             state="hidden"
@@ -357,41 +398,52 @@ class SortingHatGUI:
         # Welcome frame with professional styling
         self.welcome_frame = tk.Frame(
             self.canvas,
-            bg="#2d2d44",
+            bg="#1a1a2e",
             relief=tk.FLAT,
             borderwidth=0
         )
         self.welcome_window = self.canvas.create_window(
-            500, 270,
+            600, 320,
             window=self.welcome_frame,
             tags="welcome",
             state="hidden"
         )
         
-        # Add subtle glow effect to frame
+        # Add subtle glow effect to frame with enhanced styling
         self.canvas.create_rectangle(
-            200, 180, 800, 360,
+            250, 220, 950, 420,
             outline="#F4C430",
-            width=2,
+            width=3,
             tags=("welcome", "welcome_glow")
         )
         
+        # Add corner decorations
+        corners = [(250, 220), (950, 220), (250, 420), (950, 420)]
+        for cx, cy in corners:
+            self.canvas.create_text(
+                cx, cy,
+                text="✦",
+                font=("Segoe UI Emoji", 20),
+                fill="#FFD700",
+                tags="welcome"
+            )
+        
         self.welcome_text = tk.Label(
             self.welcome_frame,
-            text="Welcome to Hogwarts!\n\nThe Sorting Hat will determine\nwhich house you belong to...\n\n🦁 Gryffindor  🦡 Hufflepuff\n🦅 Ravenclaw  🐍 Slytherin",
-            font=("Georgia", 13),
+            text="Welcome to Hogwarts School of Witchcraft and Wizardry!\n\nThe Sorting Hat will determine\nwhich house you belong to...\n\n🦁 Gryffindor  🦡 Hufflepuff\n🦅 Ravenclaw  🐍 Slytherin",
+            font=("Georgia", 14),
             fg="#E8D7C3",
-            bg="#2d2d44",
+            bg="#1a1a2e",
             justify=tk.CENTER,
-            pady=20,
-            padx=40
+            pady=25,
+            padx=50
         )
         self.welcome_text.pack()
         
         # Name entry with professional styling
-        self.entry_frame = tk.Frame(self.canvas, bg="#1a1a2e")
+        self.entry_frame = tk.Frame(self.canvas, bg="#0a0a0f")
         self.entry_window = self.canvas.create_window(
-            500, 450,
+            600, 520,
             window=self.entry_frame,
             tags="entry",
             state="hidden"
@@ -399,29 +451,32 @@ class SortingHatGUI:
         
         self.name_label = tk.Label(
             self.entry_frame,
-            text="Enter your name:",
-            font=("Georgia", 14, "bold"),
-            fg="#F4C430",
-            bg="#1a1a2e"
+            text="✨ Enter Your Name ✨",
+            font=("Palatino Linotype", 16, "bold"),
+            fg="#FFD700",
+            bg="#0a0a0f"
         )
-        self.name_label.pack(pady=5)
+        self.name_label.pack(pady=8)
         
-        # Custom styled entry with glow effect
+        # Custom styled entry with enhanced glow effect
+        entry_container = tk.Frame(self.entry_frame, bg="#1a1a2e", relief=tk.FLAT, borderwidth=3)
+        entry_container.pack(pady=10)
+        
         self.name_entry = tk.Entry(
-            self.entry_frame,
-            font=("Georgia", 18),
-            width=22,
+            entry_container,
+            font=("Georgia", 20),
+            width=24,
             justify=tk.CENTER,
-            bg="#2d2d44",
-            fg="#E8D7C3",
-            insertbackground="#F4C430",
+            bg="#1a1a2e",
+            fg="#FFD700",
+            insertbackground="#FFD700",
             relief=tk.FLAT,
             borderwidth=2,
             highlightthickness=2,
             highlightbackground="#F4C430",
             highlightcolor="#FFD700"
         )
-        self.name_entry.pack(pady=10, ipady=10)
+        self.name_entry.pack(pady=3, padx=3, ipady=12)
         self.name_entry.insert(0, "Student")
         
         # Bind focus events for character animation
@@ -429,33 +484,33 @@ class SortingHatGUI:
         self.name_entry.bind("<FocusOut>", lambda e: self.hide_mini_character())
         self.name_entry.bind("<KeyRelease>", lambda e: self.character_react_to_typing())
         
-        # Professional animated sort button
+        # Professional animated sort button with 3D effect
         self.sort_button = tk.Button(
             self.canvas,
-            text="✨ BEGIN SORTING ✨",
+            text="✨ BEGIN SORTING CEREMONY ✨",
             command=self.start_sorting,
-            font=("Georgia", 16, "bold"),
-            bg="#9C1203",
+            font=("Palatino Linotype", 18, "bold"),
+            bg="#740001",
             fg="#FFD700",
-            activebackground="#C41E0B",
-            activeforeground="#FFE55C",
-            relief=tk.FLAT,
-            borderwidth=0,
-            padx=50,
-            pady=18,
+            activebackground="#AE0001",
+            activeforeground="#FFC500",
+            relief=tk.RAISED,
+            borderwidth=3,
+            padx=60,
+            pady=20,
             cursor="hand2"
         )
         self.sort_button_window = self.canvas.create_window(
-            500, 570,
+            600, 650,
             window=self.sort_button,
             tags="sort_btn",
             state="hidden"
         )
         
         # Result frame with professional styling
-        self.result_frame = tk.Frame(self.canvas, bg="#1a1a2e")
+        self.result_frame = tk.Frame(self.canvas, bg="#0a0a0f")
         self.result_window = self.canvas.create_window(
-            500, 350,
+            600, 300,
             window=self.result_frame,
             tags="result",
             state="hidden"
@@ -464,66 +519,67 @@ class SortingHatGUI:
         self.result_label = tk.Label(
             self.result_frame,
             text="",
-            font=("Georgia", 18, "bold"),
-            fg="#E8D7C3",
-            bg="#1a1a2e",
+            font=("Palatino Linotype", 20, "bold"),
+            fg="#FFE",
+            bg="#0a0a0f",
             justify=tk.CENTER,
-            pady=35,
-            padx=50
+            pady=40,
+            padx=60
         )
         self.result_label.pack()
         
-        # Professional maze button
+        # Professional maze button with enhanced styling
         self.maze_button = tk.Button(
             self.canvas,
-            text="🌟 MAZE CHALLENGE 🌟",
+            text="🌟 ENTER THE TRIWIZARD MAZE 🌟",
             command=self.start_maze,
-            font=("Georgia", 14, "bold"),
+            font=("Palatino Linotype", 15, "bold"),
             bg="#0E1A40",
             fg="#FFD700",
-            activebackground="#1a2d5e",
-            activeforeground="#FFE55C",
-            relief=tk.FLAT,
-            borderwidth=0,
-            padx=35,
-            pady=14,
+            activebackground="#222F5B",
+            activeforeground="#FFC500",
+            relief=tk.RAISED,
+            borderwidth=3,
+            padx=40,
+            pady=16,
             cursor="hand2"
         )
         self.maze_button_window = self.canvas.create_window(
-            500, 600,
+            600, 650,
             window=self.maze_button,
             tags="maze_btn",
             state="hidden"
         )
         
-        # Professional restart button
+        # Professional restart button with enhanced styling
         self.restart_button = tk.Button(
             self.canvas,
             text="🔄 Sort Another Student",
             command=self.restart,
-            font=("Georgia", 13, "bold"),
-            bg="#2d2d44",
+            font=("Georgia", 14, "bold"),
+            bg="#1a1a2e",
             fg="#F4C430",
-            activebackground="#3d3d54",
+            activebackground="#2a2a3e",
             activeforeground="#FFE55C",
-            relief=tk.FLAT,
-            padx=30,
-            pady=14,
+            relief=tk.RAISED,
+            borderwidth=2,
+            padx=35,
+            pady=16,
             cursor="hand2"
         )
         self.restart_button_window = self.canvas.create_window(
-            500, 670,
+            600, 730,
             window=self.restart_button,
             tags="restart_btn",
             state="hidden"
         )
         
         # Bind hover effects
-        self.sort_button.bind("<Enter>", lambda e: self.on_button_hover(self.sort_button, "#C41E0B"))
-        self.sort_button.bind("<Leave>", lambda e: self.on_button_leave(self.sort_button, "#9C1203"))
-        self.restart_button.bind("<Enter>", lambda e: self.on_button_hover(self.restart_button, "#3d3d54"))
-        self.restart_button.bind("<Leave>", lambda e: self.on_button_leave(self.restart_button, "#2d2d44"))
-        self.maze_button.bind("<Enter>", lambda e: self.on_button_hover(self.maze_button, "#1a2d5e"))
+        self.sort_button.bind("<Enter>", lambda e: self.on_button_hover(self.sort_button, "#AE0001"))
+        self.sort_button.bind("<Leave>", lambda e: self.on_button_leave(self.sort_button, "#740001"))
+        self.restart_button.bind("<Enter>", lambda e: self.on_button_hover(self.restart_button, "#2a2a3e"))
+        self.restart_button.bind("<Leave>", lambda e: self.on_button_leave(self.restart_button, "#1a1a2e"))
+        self.maze_button.bind("<Enter>", lambda e: self.on_button_hover(self.maze_button, "#222F5B"))
         self.maze_button.bind("<Leave>", lambda e: self.on_button_leave(self.maze_button, "#0E1A40"))
     
     def create_persistent_music_button(self):
@@ -531,14 +587,14 @@ class SortingHatGUI:
         # Create a fixed position button frame in top-right corner
         button_frame = tk.Frame(
             self.canvas,
-            bg="#2d2d44",
-            relief=tk.FLAT,
-            borderwidth=0
+            bg="#1a1a2e",
+            relief=tk.RAISED,
+            borderwidth=2
         )
         
-        # Position in top-right corner
+        # Position in top-right corner (adjusted for larger canvas)
         self.persistent_music_window = self.canvas.create_window(
-            950, 30,
+            1150, 35,
             window=button_frame,
             tags="persistent_music",
             anchor="e"
@@ -549,15 +605,15 @@ class SortingHatGUI:
             button_frame,
             text="🔊",
             command=self.toggle_music,
-            font=("Segoe UI Emoji", 28),
-            bg="#2d2d44",
-            fg="#F4C430",
-            activebackground="#3d3d54",
-            activeforeground="#FFE55C",
+            font=("Segoe UI Emoji", 30),
+            bg="#1a1a2e",
+            fg="#FFD700",
+            activebackground="#2a2a3e",
+            activeforeground="#FFC500",
             relief=tk.FLAT,
             borderwidth=0,
-            padx=12,
-            pady=8,
+            padx=14,
+            pady=10,
             cursor="hand2",
             width=2,
             height=1
@@ -565,36 +621,53 @@ class SortingHatGUI:
         self.persistent_music_button.pack()
         
         # Add hover glow effect
-        self.persistent_music_button.bind("<Enter>", lambda e: self.persistent_music_button.config(bg="#3d3d54", fg="#FFD700"))
-        self.persistent_music_button.bind("<Leave>", lambda e: self.persistent_music_button.config(bg="#2d2d44", fg="#F4C430"))
+        self.persistent_music_button.bind("<Enter>", lambda e: self.persistent_music_button.config(bg="#2a2a3e", fg="#FFC500"))
+        self.persistent_music_button.bind("<Leave>", lambda e: self.persistent_music_button.config(bg="#1a1a2e", fg="#FFD700"))
         
         # Keep this button always visible
         self.canvas.tag_raise("persistent_music")
     
     def create_gradient_background(self):
-        """Create professional animated gradient background"""
+        """Create professional animated gradient background with Hogwarts atmosphere"""
         # Create gradient rectangles for dark mystical theme
-        for i in range(60):
-            y = i * 12.5
-            # Calculate color gradient from dark navy to darker purple
-            r = 26 + int(i * 0.3)
-            g = 26 + int(i * 0.2)
-            b = 46 - int(i * 0.3)
-            color = f"#{min(r, 45):02x}{min(g, 35):02x}{max(b, 30):02x}"
+        for i in range(80):
+            y = i * 10
+            # Calculate color gradient from very dark to slightly lighter (night sky)
+            r = 10 + int(i * 0.2)
+            g = 10 + int(i * 0.15)
+            b = 15 + int(i * 0.4)
+            color = f"#{min(r, 35):02x}{min(g, 30):02x}{min(b, 50):02x}"
             self.canvas.create_rectangle(
-                0, y, 1000, y + 12.5,
+                0, y, 1200, y + 10,
                 fill=color,
                 outline="",
                 tags="gradient"
             )
+        
+        # Add starry night effect
+        for _ in range(120):
+            x = random.randint(0, 1200)
+            y = random.randint(0, 400)
+            size = random.randint(1, 2)
+            brightness = random.choice(["#FFFFFF", "#FFE4B5", "#F0E68C"])
+            self.canvas.create_oval(
+                x, y, x + size, y + size,
+                fill=brightness,
+                outline="",
+                tags="stars"
+            )
+        
+        # Add castle silhouette pattern
+        self.draw_castle_silhouette()
     
     def create_particles(self):
-        """Create floating magical particle effect"""
-        for _ in range(40):
-            x = random.randint(0, 1000)
-            y = random.randint(0, 750)
-            size = random.randint(1, 4)
-            speed = random.uniform(0.3, 1.5)
+        """Create floating magical particle effect with varied colors"""
+        # Create golden magical particles
+        for _ in range(25):
+            x = random.randint(0, 1200)
+            y = random.randint(0, 800)
+            size = random.randint(2, 5)
+            speed = random.uniform(0.4, 1.8)
             particle = {
                 'id': self.canvas.create_oval(
                     x, y, x + size, y + size,
@@ -606,23 +679,46 @@ class SortingHatGUI:
                 'y': y,
                 'size': size,
                 'speed': speed,
-                'direction': random.choice([-1, 1])
+                'direction': random.choice([-1, 1]),
+                'color_type': 'gold'
+            }
+            self.particles.append(particle)
+        
+        # Create blue mystical particles
+        for _ in range(20):
+            x = random.randint(0, 1200)
+            y = random.randint(0, 800)
+            size = random.randint(1, 3)
+            speed = random.uniform(0.3, 1.2)
+            particle = {
+                'id': self.canvas.create_oval(
+                    x, y, x + size, y + size,
+                    fill="#5DADE2",
+                    outline="",
+                    tags="particle"
+                ),
+                'x': x,
+                'y': y,
+                'size': size,
+                'speed': speed,
+                'direction': random.choice([-1, 1]),
+                'color_type': 'blue'
             }
             self.particles.append(particle)
     
     def animate_particles(self):
-        """Animate floating magical particles"""
+        """Animate floating magical particles with enhanced color effects"""
         for particle in self.particles:
             # Move particle
             particle['y'] -= particle['speed']
-            particle['x'] += particle['direction'] * 0.2
+            particle['x'] += particle['direction'] * 0.3
             
             # Reset if out of bounds
             if particle['y'] < 0:
-                particle['y'] = 750
-                particle['x'] = random.randint(0, 1000)
+                particle['y'] = 800
+                particle['x'] = random.randint(0, 1200)
             
-            if particle['x'] < 0 or particle['x'] > 1000:
+            if particle['x'] < 0 or particle['x'] > 1200:
                 particle['direction'] *= -1
             
             # Update position
@@ -634,29 +730,231 @@ class SortingHatGUI:
                 particle['y'] + particle['size']
             )
             
-            # Pulse glow effect for magical feel
+            # Pulse glow effect based on particle type
             alpha_val = int(128 + 127 * math.sin(time.time() * 2 + particle['x']))
             try:
-                # Golden magical particles
-                r = 244
-                g = max(196 - (255 - alpha_val) // 3, 140)
-                b = 48
-                self.canvas.itemconfig(particle['id'], fill=f"#{r:02x}{g:02x}{b:02x}")
+                if particle['color_type'] == 'gold':
+                    r = 244
+                    g = max(196 - (255 - alpha_val) // 3, 140)
+                    b = 48
+                    self.canvas.itemconfig(particle['id'], fill=f"#{r:02x}{g:02x}{b:02x}")
+                else:  # blue
+                    r = 93
+                    g = 173 + (255 - alpha_val) // 4
+                    b = 226
+                    self.canvas.itemconfig(particle['id'], fill=f"#{r:02x}{g:02x}{b:02x}")
             except:
                 pass
         
         self.root.after(50, self.animate_particles)
     
+    def draw_castle_silhouette(self):
+        """Draw Hogwarts castle silhouette in background for ambiance"""
+        # Far left tower
+        self.canvas.create_polygon(
+            50, 350, 80, 250, 110, 350,
+            fill="#0f0f1a",
+            outline="",
+            tags="castle_bg"
+        )
+        
+        # Far right tower
+        self.canvas.create_polygon(
+            1090, 350, 1120, 250, 1150, 350,
+            fill="#0f0f1a",
+            outline="",
+            tags="castle_bg"
+        )
+        
+        # Central castle structure (subtle)
+        castle_points = [
+            200, 350,  # bottom left
+            200, 300,
+            250, 280,
+            250, 320,
+            300, 300,
+            300, 340,
+            350, 320,
+            350, 280,
+            400, 260,  # central peak
+            450, 280,
+            450, 320,
+            500, 300,
+            500, 340,
+            550, 320,
+            550, 280,
+            600, 300,
+            600, 350   # bottom right
+        ]
+        self.canvas.create_polygon(
+            castle_points,
+            fill="#0f0f1a",
+            outline="#1a1a2a",
+            tags="castle_bg"
+        )
+        
+        # Add some tower windows with faint lights
+        window_positions = [(100, 300), (250, 310), (400, 285), (1100, 300)]
+        for wx, wy in window_positions:
+            self.canvas.create_rectangle(
+                wx - 3, wy - 5, wx + 3, wy + 5,
+                fill="#4a3820",
+                outline="",
+                tags="castle_bg"
+            )
+    
+    def animate_background_pattern(self):
+        """Animate subtle background patterns for depth"""
+        self.background_animation_step += 0.02
+        
+        # Animate floating candles effect (for Great Hall atmosphere)
+        if hasattr(self, 'candle_lights'):
+            for candle_id in self.candle_lights:
+                try:
+                    # Flicker effect
+                    flicker = math.sin(self.background_animation_step * 3 + candle_id) * 0.3 + 0.7
+                    # This creates a subtle flicker but we'll skip color change for performance
+                except:
+                    pass
+        
+        self.root.after(100, self.animate_background_pattern)
+    
+    def create_themed_background(self, theme):
+        """Create themed background based on current screen"""
+        # Remove old themed elements
+        self.canvas.delete("theme_bg")
+        
+        if theme == "welcome":
+            self.create_welcome_theme()
+        elif theme == "great_hall":
+            self.create_great_hall_theme()
+        elif theme == "result":
+            self.create_result_theme()
+        elif theme == "maze":
+            self.create_maze_theme()
+    
+    def create_welcome_theme(self):
+        """Create Hogwarts entrance theme"""
+        # Add floating candles
+        self.candle_lights = []
+        for i in range(8):
+            x = 150 + i * 130
+            y = 100 + random.randint(-20, 20)
+            # Candle flame
+            candle = self.canvas.create_oval(
+                x - 4, y - 8, x + 4, y + 8,
+                fill="#FFA500",
+                outline="#FFD700",
+                tags="theme_bg"
+            )
+            self.candle_lights.append(candle)
+            # Glow around candle
+            self.canvas.create_oval(
+                x - 10, y - 14, x + 10, y + 14,
+                fill="",
+                outline="#FFD700",
+                tags="theme_bg"
+            )
+    
+    def create_great_hall_theme(self):
+        """Create Great Hall sorting ceremony atmosphere"""
+        # Add house banners silhouettes
+        banner_colors = ["#740001", "#FFDB00", "#0E1A40", "#1A472A"]
+        for i, color in enumerate(banner_colors):
+            x = 200 + i * 220
+            # Banner pole
+            self.canvas.create_rectangle(
+                x - 2, 150, x + 2, 350,
+                fill="#3d2817",
+                outline="",
+                tags="theme_bg"
+            )
+            # Banner cloth
+            self.canvas.create_polygon(
+                x - 40, 150,
+                x + 40, 150,
+                x + 40, 280,
+                x, 300,
+                x - 40, 280,
+                fill=color,
+                outline="",
+                stipple="gray50",
+                tags="theme_bg"
+            )
+    
+    def create_result_theme(self):
+        """Create house-specific result background"""
+        if self.current_house:
+            colors = self.house_colors[self.current_house]
+            # Create house-colored overlay
+            for i in range(50):
+                y = i * 16
+                # Parse hex color
+                start_color = colors["bg_start"].lstrip('#')
+                end_color = colors["bg_end"].lstrip('#')
+                
+                r_start, g_start, b_start = int(start_color[0:2], 16), int(start_color[2:4], 16), int(start_color[4:6], 16)
+                r_end, g_end, b_end = int(end_color[0:2], 16), int(end_color[2:4], 16), int(end_color[4:6], 16)
+                
+                progress = i / 50
+                r = int(r_start + (r_end - r_start) * progress)
+                g = int(g_start + (g_end - g_start) * progress)
+                b = int(b_start + (b_end - b_start) * progress)
+                
+                self.canvas.create_rectangle(
+                    0, y, 1200, y + 16,
+                    fill=f"#{r:02x}{g:02x}{b:02x}",
+                    outline="",
+                    tags="theme_bg"
+                )
+            
+            # Add house-specific pattern
+            self.draw_house_pattern(self.current_house)
+    
+    def create_maze_theme(self):
+        """Create Forbidden Forest/Triwizard maze atmosphere"""
+        # Dark forest ambiance
+        for i in range(60):
+            y = i * 13.3
+            r = 15 + int(i * 0.1)
+            g = 20 + int(i * 0.15)
+            b = 15 + int(i * 0.1)
+            self.canvas.create_rectangle(
+                0, y, 1200, y + 13.3,
+                fill=f"#{r:02x}{g:02x}{b:02x}",
+                outline="",
+                tags="theme_bg"
+            )
+    
+    def draw_house_pattern(self, house):
+        """Draw house-specific decorative patterns"""
+        colors = self.house_colors[house]
+        emoji = house_info[house]["emoji"]
+        
+        # Scatter house emblems in background
+        for i in range(12):
+            x = random.randint(100, 1100)
+            y = random.randint(100, 700)
+            self.canvas.create_text(
+                x, y,
+                text=emoji,
+                font=("Segoe UI Emoji", random.randint(30, 60)),
+                fill=colors["dark"],
+                tags="theme_bg"
+            )
+    
     def start_animations(self):
         """Start all entrance animations"""
         self.animate_particles()
         self.animate_title_entrance()
+        self.create_themed_background("welcome")
     
     def animate_title_entrance(self):
-        """Animate title sliding down with elegance"""
-        if self.title_y < 60:
-            self.title_y += 2.5
-            self.canvas.coords(self.title_text, 500, self.title_y)
+        """Animate title sliding down with elegance (including shadow)"""
+        if self.title_y < 70:
+            self.title_y += 3
+            self.canvas.coords(self.title_text, 600, self.title_y)
+            self.canvas.coords(self.title_shadow, 603, self.title_y + 3)
             self.root.after(20, self.animate_title_entrance)
         else:
             # Show subtitle after title
@@ -685,11 +983,11 @@ class SortingHatGUI:
         elif self.glow_alpha <= 0:
             self.glow_direction = 1
         
-        # Update button glow with smooth transitions
-        glow_intensity_r = int(156 + 40 * self.glow_alpha)
-        glow_intensity_g = int(18 + 10 * self.glow_alpha)
+        # Update button glow with smooth transitions (enhanced colors)
+        glow_intensity_r = int(116 + 58 * self.glow_alpha)  # 116 to 174
+        glow_intensity_g = int(0 + 1 * self.glow_alpha)     # 0 to 1
         try:
-            self.sort_button.config(bg=f"#{glow_intensity_r:02x}{glow_intensity_g:02x}03")
+            self.sort_button.config(bg=f"#{glow_intensity_r:02x}{glow_intensity_g:02x}01")
         except:
             pass
         
@@ -700,21 +998,21 @@ class SortingHatGUI:
         if not self.character_visible:
             self.character_visible = True
             
-            # Create owl character elements
+            # Create owl character elements (adjusted for larger canvas)
             # Owl body
             self.character_elements.append(
                 self.canvas.create_text(
-                    700, 450,
+                    850, 520,
                     text="🦉",
-                    font=("Segoe UI Emoji", 52),
+                    font=("Segoe UI Emoji", 56),
                     tags="mini_char"
                 )
             )
             
             # Professional speech bubble
-            bubble_frame = tk.Frame(self.canvas, bg="#2d2d44", relief=tk.FLAT, borderwidth=0)
+            bubble_frame = tk.Frame(self.canvas, bg="#1a1a2e", relief=tk.RAISED, borderwidth=2)
             bubble_window = self.canvas.create_window(
-                820, 430,
+                980, 500,
                 window=bubble_frame,
                 tags="mini_char"
             )
@@ -722,31 +1020,31 @@ class SortingHatGUI:
             
             bubble_text = tk.Label(
                 bubble_frame,
-                text="  Nice to\n  meet you!  ",
-                font=("Georgia", 11, "italic", "bold"),
-                fg="#F4C430",
-                bg="#2d2d44",
+                text="  A fine name!\n  Let's sort you!  ",
+                font=("Georgia", 12, "italic", "bold"),
+                fg="#FFD700",
+                bg="#1a1a2e",
                 justify=tk.LEFT
             )
-            bubble_text.pack(padx=8, pady=5)
+            bubble_text.pack(padx=10, pady=6)
             
             # Add glow outline to bubble
             self.canvas.create_rectangle(
-                770, 410, 870, 450,
+                925, 475, 1035, 525,
                 outline="#F4C430",
-                width=1,
+                width=2,
                 tags="mini_char"
             )
             
-            # Star particles around character
-            for i in range(6):
-                angle = (i * 60) * (math.pi / 180)
-                x = 700 + 45 * math.cos(angle)
-                y = 450 + 45 * math.sin(angle)
+            # Star particles around character (more magical)
+            for i in range(8):
+                angle = (i * 45) * (math.pi / 180)
+                x = 850 + 50 * math.cos(angle)
+                y = 520 + 50 * math.sin(angle)
                 star = self.canvas.create_text(
                     x, y,
                     text="✨",
-                    font=("Segoe UI Emoji", 14),
+                    font=("Segoe UI Emoji", 16),
                     tags="mini_char"
                 )
                 self.character_elements.append(star)
@@ -783,11 +1081,11 @@ class SortingHatGUI:
         """Animate character bouncing up and down"""
         if self.character_visible:
             # Bounce animation
-            self.character_y_offset += 0.25 * self.character_bounce_direction
+            self.character_y_offset += 0.3 * self.character_bounce_direction
             
-            if self.character_y_offset > 8:
+            if self.character_y_offset > 10:
                 self.character_bounce_direction = -1
-            elif self.character_y_offset < -8:
+            elif self.character_y_offset < -10:
                 self.character_bounce_direction = 1
             
             # Move all character elements
@@ -797,7 +1095,7 @@ class SortingHatGUI:
                     if len(coords) >= 2:
                         current_y = coords[1]
                         # Only apply vertical movement
-                        self.canvas.coords(element, coords[0], 450 + self.character_y_offset if element == self.character_elements[0] else current_y)
+                        self.canvas.coords(element, coords[0], 520 + self.character_y_offset if element == self.character_elements[0] else current_y)
                 except:
                     pass
             
@@ -807,12 +1105,12 @@ class SortingHatGUI:
         """Character reacts when user types with magical sparkles"""
         if self.character_visible and len(self.character_elements) > 0:
             # Create magical sparkle effect when typing
-            x = 700 + random.randint(-35, 35)
-            y = 450 + random.randint(-35, 35)
+            x = 850 + random.randint(-40, 40)
+            y = 520 + random.randint(-40, 40)
             sparkle = self.canvas.create_text(
                 x, y,
                 text=random.choice(["✨", "⭐", "💫", "🌟"]),
-                font=("Segoe UI Emoji", 16),
+                font=("Segoe UI Emoji", 18),
                 tags="sparkle"
             )
             
@@ -881,23 +1179,26 @@ class SortingHatGUI:
     
     def show_thinking_animation(self, name):
         """Display professional animated thinking process"""
-        thinking_frame = tk.Frame(self.canvas, bg="#2d2d44", padx=50, pady=35, relief=tk.FLAT, borderwidth=0)
-        thinking_window = self.canvas.create_window(500, 380, window=thinking_frame, tags="thinking")
+        # Switch to Great Hall theme
+        self.create_themed_background("great_hall")
+        
+        thinking_frame = tk.Frame(self.canvas, bg="#1a1a2e", padx=60, pady=40, relief=tk.RAISED, borderwidth=3)
+        thinking_window = self.canvas.create_window(600, 420, window=thinking_frame, tags="thinking")
         
         # Add glow outline
         self.canvas.create_rectangle(
-            250, 310, 750, 450,
-            outline="#F4C430",
-            width=2,
+            300, 330, 900, 510,
+            outline="#FFD700",
+            width=3,
             tags="thinking"
         )
         
         thinking_label = tk.Label(
             thinking_frame,
-            text=f"🤔 Hmm... {name}...\nDifficult. Very difficult...\n\n✨ Analyzing your traits... ✨",
-            font=("Georgia", 17, "bold"),
-            fg="#E8D7C3",
-            bg="#2d2d44",
+            text=f"🤔 Hmm... {name}...\nDifficult. Very difficult...\n\n✨ Analyzing your magical traits... ✨",
+            font=("Palatino Linotype", 19, "bold"),
+            fg="#FFD700",
+            bg="#1a1a2e",
             justify=tk.CENTER
         )
         thinking_label.pack()
@@ -910,9 +1211,9 @@ class SortingHatGUI:
     
     def animate_thinking_dots(self, label, count, name):
         """Animate thinking dots with professional timing"""
-        if count < 18:
+        if count < 20:
             dots = "." * ((count % 4) + 1)
-            label.config(text=f"🤔 Hmm... {name}...\nDifficult. Very difficult{dots}\n\n✨ Analyzing your traits... ✨")
+            label.config(text=f"🤔 Hmm... {name}...\nDifficult. Very difficult{dots}\n\n✨ Analyzing your magical traits... ✨")
             self.root.after(200, lambda: self.animate_thinking_dots(label, count + 1, name))
         else:
             # Remove thinking animation
@@ -940,13 +1241,13 @@ class SortingHatGUI:
     
     def create_explosion_effect(self, color):
         """Create professional particle explosion effect"""
-        center_x, center_y = 500, 380
+        center_x, center_y = 600, 420
         explosion_particles = []
         
-        for _ in range(60):
+        for _ in range(80):
             angle = random.uniform(0, 2 * math.pi)
-            speed = random.uniform(4, 12)
-            size = random.randint(4, 12)
+            speed = random.uniform(5, 15)
+            size = random.randint(5, 14)
             
             particle = self.canvas.create_oval(
                 center_x, center_y,
@@ -963,7 +1264,7 @@ class SortingHatGUI:
                 'vx': speed * math.cos(angle),
                 'vy': speed * math.sin(angle),
                 'size': size,
-                'life': 25
+                'life': 28
             })
         
         self.animate_explosion(explosion_particles)
@@ -993,7 +1294,12 @@ class SortingHatGUI:
             self.root.after(30, lambda: self.animate_explosion(active_particles))
     
     def display_final_result(self, name, house, colors, emoji, traits, founder):
-        """Display final sorting result with professional animation"""
+        """Display final sorting result with professional animation and themed background"""
+        # Switch to house-specific themed background
+        self.current_house = house
+        self.current_theme = "result"
+        self.create_themed_background("result")
+        
         # Clear any existing result
         self.result_label.config(text="")
         
@@ -1004,11 +1310,11 @@ class SortingHatGUI:
         result_text += f"{traits}\n"
         result_text += f"Founded by: {founder}"
         
-        self.result_frame.config(bg=colors["primary"], relief=tk.FLAT, borderwidth=0)
+        self.result_frame.config(bg=colors["primary"], relief=tk.RAISED, borderwidth=4)
         self.result_label.config(
             text=result_text,
             bg=colors["primary"],
-            fg="#FFE"  # Off-white for better readability
+            fg="#FFFACD"  # Lemon chiffon for better readability
         )
         
         # Show the four house castles and animate student walking to selected house
@@ -1018,7 +1324,7 @@ class SortingHatGUI:
         self.canvas.tag_raise("persistent_music")
         
         # Show result with slide-in animation after walking animation
-        self.root.after(4000, lambda: self.show_final_result_panel())
+        self.root.after(4500, lambda: self.show_final_result_panel())
         
         # Re-enable button
         self.sort_button.config(state=tk.NORMAL)
@@ -1026,8 +1332,8 @@ class SortingHatGUI:
     def slide_in_result(self, current_y, target_y):
         """Slide in result animation with smooth easing"""
         if current_y < target_y:
-            current_y += 8
-            self.canvas.coords(self.result_window, 500, current_y)
+            current_y += 10
+            self.canvas.coords(self.result_window, 600, current_y)
             self.root.after(20, lambda: self.slide_in_result(current_y, target_y))
         else:
             # Ensure music button stays on top
@@ -1036,20 +1342,21 @@ class SortingHatGUI:
     def show_houses_and_walking_student(self, selected_house):
         """Display 4 house castles and animate student walking to selected house"""
         # Castle positions (left to right: Gryffindor, Hufflepuff, Ravenclaw, Slytherin)
+        # Adjusted for larger canvas
         castle_positions = {
-            "Gryffindor": 150,
-            "Hufflepuff": 350,
-            "Ravenclaw": 550,
-            "Slytherin": 750
+            "Gryffindor": 200,
+            "Hufflepuff": 450,
+            "Ravenclaw": 700,
+            "Slytherin": 950
         }
         
         # Draw all 4 castles
         for house_name, x_pos in castle_positions.items():
-            self.draw_castle(x_pos, 450, house_name, house_name == selected_house)
+            self.draw_castle(x_pos, 500, house_name, house_name == selected_house)
         
         # Create and animate student walking to selected house
         target_x = castle_positions[selected_house]
-        self.create_walking_student(100, 500, target_x, selected_house)
+        self.create_walking_student(120, 550, target_x, selected_house)
     
     def draw_castle(self, x, y, house_name, is_selected):
         """Draw a castle representation for a house"""
@@ -1534,7 +1841,7 @@ class SortingHatGUI:
         self.canvas.tag_raise("persistent_music")
         
         # Animate result sliding in
-        self.slide_in_result(100, 200)
+        self.slide_in_result(120, 250)
     
     def restart(self):
         """Restart the sorting process with professional fade out animation"""
@@ -1546,13 +1853,19 @@ class SortingHatGUI:
         self.canvas.delete("castle")
         self.canvas.delete("castle_glow")
         self.canvas.delete("student")
+        self.canvas.delete("theme_bg")
+        
+        # Reset theme
+        self.current_theme = "welcome"
+        self.current_house = None
+        self.create_themed_background("welcome")
         
         # Reset and show input elements
         self.name_entry.delete(0, tk.END)
         self.name_entry.insert(0, "Student")
         
-        self.result_frame.config(bg="#1a1a2e", relief=tk.FLAT, borderwidth=0)
-        self.result_label.config(text="", bg="#1a1a2e")
+        self.result_frame.config(bg="#0a0a0f", relief=tk.FLAT, borderwidth=0)
+        self.result_label.config(text="", bg="#0a0a0f")
         
         # Hide maze button
         self.canvas.itemconfig("maze_btn", state="hidden")
@@ -1567,13 +1880,18 @@ class SortingHatGUI:
         self.canvas.tag_raise("persistent_music")
     
     def start_maze(self):
-        """Start the maze challenge"""
+        """Start the maze challenge with Forbidden Forest theme"""
         # Hide all previous elements
         self.canvas.itemconfig("result", state="hidden")
         self.canvas.itemconfig("restart_btn", state="hidden")
         self.canvas.itemconfig("maze_btn", state="hidden")
         self.canvas.delete("castle")
         self.canvas.delete("castle_glow")
+        self.canvas.delete("theme_bg")
+        
+        # Switch to maze theme
+        self.current_theme = "maze"
+        self.create_themed_background("maze")
         
         # Ensure music button stays visible
         self.canvas.tag_raise("persistent_music")
@@ -1631,24 +1949,31 @@ class SortingHatGUI:
         self.exit_pos = [size - 2, size - 2]
     
     def draw_maze(self):
-        """Draw the maze on canvas with professional styling"""
+        """Draw the maze on canvas with professional Forbidden Forest styling"""
         self.canvas.delete("maze")
         
         # Calculate offset to center maze
         maze_width = self.maze_size * self.cell_size
-        offset_x = (1000 - maze_width) // 2
-        offset_y = 100
+        offset_x = (1200 - maze_width) // 2
+        offset_y = 120
         
-        # Draw professional title
+        # Draw professional title with shadow
         self.canvas.create_text(
-            500, 50,
-            text="🌟 MAGICAL MAZE CHALLENGE 🌟",
-            font=("Georgia", 22, "bold"),
-            fill="#F4C430",
+            602, 57,
+            text="🌟 THE TRIWIZARD MAZE 🌟",
+            font=("Copperplate Gothic Bold", 26, "bold"),
+            fill="#000000",
+            tags="maze"
+        )
+        self.canvas.create_text(
+            600, 55,
+            text="🌟 THE TRIWIZARD MAZE 🌟",
+            font=("Copperplate Gothic Bold", 26, "bold"),
+            fill="#FFD700",
             tags="maze"
         )
         
-        # Draw maze cells with professional colors
+        # Draw maze cells with Forbidden Forest colors
         for y in range(self.maze_size):
             for x in range(self.maze_size):
                 x1 = offset_x + x * self.cell_size
@@ -1657,39 +1982,51 @@ class SortingHatGUI:
                 y2 = y1 + self.cell_size
                 
                 if self.maze[y][x] == 1:
-                    # Wall - dark brown
+                    # Wall - dark forest green/brown
                     self.canvas.create_rectangle(
                         x1, y1, x2, y2,
-                        fill="#3d2817",
-                        outline="#2a1b0f",
+                        fill="#1a3025",
+                        outline="#0f2019",
+                        width=2,
                         tags="maze"
                     )
                 else:
-                    # Path - lighter tone
+                    # Path - misty ground
                     self.canvas.create_rectangle(
                         x1, y1, x2, y2,
-                        fill="#4a4458",
-                        outline="#3a3448",
+                        fill="#2a3a35",
+                        outline="#1a2a25",
                         tags="maze"
                     )
         
-        # Draw exit with glow effect
+        # Draw exit with magical glow effect
         exit_x1 = offset_x + self.exit_pos[0] * self.cell_size
         exit_y1 = offset_y + self.exit_pos[1] * self.cell_size
         exit_x2 = exit_x1 + self.cell_size
         exit_y2 = exit_y1 + self.cell_size
+        
+        # Multiple glow layers
+        for i in range(3):
+            self.canvas.create_rectangle(
+                exit_x1 - i*3, exit_y1 - i*3, exit_x2 + i*3, exit_y2 + i*3,
+                fill="",
+                outline="#FFD700",
+                width=2,
+                tags="maze"
+            )
+        
         self.canvas.create_rectangle(
             exit_x1, exit_y1, exit_x2, exit_y2,
             fill="#5DBE71",
-            outline="#F4C430",
-            width=3,
+            outline="#FFD700",
+            width=4,
             tags="maze"
         )
         self.canvas.create_text(
             exit_x1 + self.cell_size // 2,
             exit_y1 + self.cell_size // 2,
             text="🏆",
-            font=("Segoe UI Emoji", 28),
+            font=("Segoe UI Emoji", 30),
             tags="maze"
         )
         
@@ -1700,21 +2037,30 @@ class SortingHatGUI:
         self.draw_player()
     
     def draw_player(self):
-        """Draw the player on the maze"""
+        """Draw the player on the maze with enhanced visuals"""
         self.canvas.delete("player")
         
         maze_width = self.maze_size * self.cell_size
-        offset_x = (1000 - maze_width) // 2
-        offset_y = 100
+        offset_x = (1200 - maze_width) // 2
+        offset_y = 120
         
         x = offset_x + self.player_pos[0] * self.cell_size + self.cell_size // 2
         y = offset_y + self.player_pos[1] * self.cell_size + self.cell_size // 2
         
-        # Draw player as a wizard
+        # Draw player glow effect
+        self.canvas.create_oval(
+            x - 22, y - 22, x + 22, y + 22,
+            fill="",
+            outline="#FFD700",
+            width=2,
+            tags="player"
+        )
+        
+        # Draw player as a wizard with wand light
         self.canvas.create_text(
             x, y,
             text="🧙",
-            font=("Segoe UI Emoji", 32),
+            font=("Segoe UI Emoji", 36),
             tags="player"
         )
         
@@ -1744,40 +2090,41 @@ class SortingHatGUI:
     
     def show_maze_instructions(self):
         """Show professional maze instructions"""
-        instructions = tk.Frame(self.canvas, bg="#2d2d44", relief=tk.FLAT, borderwidth=0)
+        instructions = tk.Frame(self.canvas, bg="#1a1a2e", relief=tk.RAISED, borderwidth=2)
         instructions_window = self.canvas.create_window(
-            500, 720,
+            600, 770,
             window=instructions,
             tags="maze"
         )
         
         instructions_label = tk.Label(
             instructions,
-            text="Use Arrow Keys ⬆️⬇️⬅️➡️ to navigate | Find the Trophy 🏆",
-            font=("Georgia", 12, "bold"),
-            fg="#F4C430",
-            bg="#2d2d44",
-            padx=25,
-            pady=10
+            text="Use Arrow Keys ⬆️⬇️⬅️➡️ to navigate through the maze | Find the Triwizard Cup 🏆",
+            font=("Palatino Linotype", 13, "bold"),
+            fg="#FFD700",
+            bg="#1a1a2e",
+            padx=30,
+            pady=12
         )
         instructions_label.pack()
         
         # Add back button to return from maze
         back_button = tk.Button(
             self.canvas,
-            text="⬅️ Back",
+            text="⬅️ Back to Sorting Hat",
             command=self.return_from_maze,
-            font=("Georgia", 11, "bold"),
-            bg="#4a4458",
+            font=("Georgia", 12, "bold"),
+            bg="#2a3a35",
             fg="#FFD700",
-            activebackground="#5a5468",
-            activeforeground="#FFE55C",
-            relief=tk.FLAT,
-            padx=20,
-            pady=10,
+            activebackground="#3a4a45",
+            activeforeground="#FFC500",
+            relief=tk.RAISED,
+            borderwidth=2,
+            padx=25,
+            pady=12,
             cursor="hand2"
         )
-        back_window = self.canvas.create_window(100, 720, window=back_button, tags="maze")
+        back_window = self.canvas.create_window(120, 770, window=back_button, tags="maze")
         
         # Ensure music button stays on top
         self.canvas.tag_raise("persistent_music")
@@ -1787,26 +2134,27 @@ class SortingHatGUI:
         self.maze_active = False
         
         # Show congratulations with professional styling
-        congrats_frame = tk.Frame(self.canvas, bg="#2d2d44", relief=tk.FLAT, borderwidth=0)
-        congrats_window = self.canvas.create_window(500, 380, window=congrats_frame, tags="maze")
+        congrats_frame = tk.Frame(self.canvas, bg="#1a1a2e", relief=tk.RAISED, borderwidth=4)
+        congrats_window = self.canvas.create_window(600, 420, window=congrats_frame, tags="maze")
         
-        # Add glow outline
-        self.canvas.create_rectangle(
-            200, 280, 800, 480,
-            outline="#FFD700",
-            width=3,
-            tags="maze"
-        )
+        # Add multiple glow outlines
+        for i in range(3):
+            self.canvas.create_rectangle(
+                250 - i*10, 300 - i*10, 950 + i*10, 540 + i*10,
+                outline="#FFD700",
+                width=2,
+                tags="maze"
+            )
         
         congrats_label = tk.Label(
             congrats_frame,
-            text="🎉 CONGRATULATIONS! 🎉\n\nYou've successfully completed\nthe Magical Maze Challenge!\n\n⭐ Well Done, Young Wizard! ⭐",
-            font=("Georgia", 18, "bold"),
-            fg="#F4C430",
-            bg="#2d2d44",
+            text="🎉 CONGRATULATIONS! 🎉\n\nYou've successfully navigated\nthe Triwizard Maze!\n\n⭐ The Triwizard Cup is yours! ⭐\n\nWell Done, Champion Wizard!",
+            font=("Palatino Linotype", 20, "bold"),
+            fg="#FFD700",
+            bg="#1a1a2e",
             justify=tk.CENTER,
-            padx=50,
-            pady=35
+            padx=60,
+            pady=40
         )
         congrats_label.pack()
         
@@ -1815,17 +2163,18 @@ class SortingHatGUI:
             self.canvas,
             text="🔄 Return to Sorting Hat",
             command=self.return_from_maze,
-            font=("Georgia", 13, "bold"),
-            bg="#9C1203",
+            font=("Palatino Linotype", 15, "bold"),
+            bg="#740001",
             fg="#FFD700",
-            activebackground="#C41E0B",
-            activeforeground="#FFE55C",
-            relief=tk.FLAT,
-            padx=30,
-            pady=14,
+            activebackground="#AE0001",
+            activeforeground="#FFC500",
+            relief=tk.RAISED,
+            borderwidth=3,
+            padx=40,
+            pady=18,
             cursor="hand2"
         )
-        return_window = self.canvas.create_window(500, 540, window=return_button, tags="maze")
+        return_window = self.canvas.create_window(600, 600, window=return_button, tags="maze")
         
         # Ensure music button stays on top
         self.canvas.tag_raise("persistent_music")
@@ -1834,6 +2183,7 @@ class SortingHatGUI:
         """Return to the main screen"""
         self.canvas.delete("maze")
         self.canvas.delete("player")
+        self.canvas.delete("theme_bg")
         self.maze_active = False
         
         # Unbind arrow keys
