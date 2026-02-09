@@ -1912,6 +1912,9 @@ class SortingHatGUI:
     
     def generate_maze(self):
         """Generate a random maze using recursive backtracking"""
+        # Seed random generator with current time for unique mazes each run
+        random.seed(time.time())
+        
         # Initialize maze with walls
         size = self.maze_size
         self.maze = [[1 for _ in range(size)] for _ in range(size)]
