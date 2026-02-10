@@ -6,6 +6,7 @@ from tkinter import ttk, messagebox
 import pygame
 import threading
 import math
+from PIL import Image, ImageTk, ImageEnhance, ImageFilter
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -308,6 +309,11 @@ class SortingHatGUI:
         self.character_bounce_direction = 1
         self.character_elements = []
         
+        # Animated background assets
+        self.bg_photo = None
+        self.witch_images = []
+        self.witches = []
+        
         # House colors with gradients - Professional palette with richer tones
         self.house_colors = {
             "Gryffindor": {
@@ -342,15 +348,30 @@ class SortingHatGUI:
         )
         self.canvas.pack(fill=tk.BOTH, expand=True)
         
+        # Load animated background assets
+        self.load_background_assets()
+        
+        # Create animated background FIRST (so it's behind everything)
+        self.create_animated_background()
+        self.create_witches()
+        
         self.create_widgets()
+        
+        # Fix layering to ensure background is behind and witches float naturally
+        self.fix_layering()
+        
         self.start_animations()
         self.animate_background_pattern()
+        
+        # Start witch animation
+        self.animate_witches()
     
     def create_widgets(self):
         """Create all GUI widgets with professional animation-ready structure"""
         
-        # Background gradient effect
-        self.create_gradient_background()
+        # Only create gradient if no background image loaded
+        if not self.bg_photo:
+            self.create_gradient_background()
         
         # Animated particles
         self.create_particles()
@@ -972,6 +993,7 @@ class SortingHatGUI:
             self.canvas.itemconfig("welcome_glow", state="normal")
             self.canvas.itemconfig("entry", state="normal")
             self.canvas.itemconfig("sort_btn", state="normal")
+            
             self.pulse_glow_effect()
     
     def pulse_glow_effect(self):
@@ -1133,6 +1155,141 @@ class SortingHatGUI:
                 self.canvas.delete(sparkle_id)
             except:
                 pass
+    
+    def load_background_assets(self):
+        """Load animated background assets (Hogwarts castle + floating witches)"""
+        try:
+            # Load Hogwarts background image (JPG format)
+            bg_path = "assets/hogwarts_bg.jpg"
+            if os.path.exists(bg_path):
+                self.bg_image = Image.open(bg_path)
+                self.bg_image = self.bg_image.resize((1200, 800), Image.Resampling.LANCZOS)
+                self.bg_photo = ImageTk.PhotoImage(self.bg_image)
+                print("✅ Hogwarts background loaded from hogwarts_bg.jpg!")
+            else:
+                print(f"⚠️ Background not found: {bg_path}")
+                print("   Using gradient background instead.")
+            
+            # Load single witch image and use it for all 3 witches
+            witch_path = "assets/witch1.png"
+            if os.path.exists(witch_path):
+                witch_img = Image.open(witch_path).resize((80, 80), Image.Resampling.LANCZOS)
+                witch_photo = ImageTk.PhotoImage(witch_img)
+                # Use the same image for all 3 witches (they'll have different positions/speeds)
+                self.witch_images = [witch_photo, witch_photo, witch_photo]
+                print(f"✅ Loaded witch1.png - creating 3 flying witches!")
+            else:
+                print(f"⚠️ Witch image not found: {witch_path}")
+                print("   Add witch1.png with transparent background to assets folder")
+                
+        except Exception as e:
+            print(f"⚠️ Could not load background assets: {e}")
+    
+    def create_animated_background(self):
+        """Create the Hogwarts castle background (static image)"""
+        if self.bg_photo:
+            try:
+                self.bg_id = self.canvas.create_image(
+                    0, 0,
+                    image=self.bg_photo,
+                    anchor="nw",
+                    tags="animated_bg"
+                )
+                # Ensure it's at the very back
+                self.canvas.tag_lower("animated_bg")
+                print("✅ Animated background created!")
+            except Exception as e:
+                print(f"⚠️ Could not create animated background: {e}")
+    
+    def create_witches(self):
+        """Create floating witches that will animate across the screen"""
+        if not self.witch_images:
+            return
+        
+        try:
+            num_witches = len(self.witch_images)
+            
+            for i in range(num_witches):
+                x = random.randint(100, 1100)
+                y = random.randint(100, 400)
+                
+                witch = self.canvas.create_image(
+                    x, y,
+                    image=self.witch_images[i],
+                    tags="witch"
+                )
+                
+                self.witches.append({
+                    "id": witch,
+                    "dx": random.choice([-1, 1]) * random.uniform(0.5, 1.2),
+                    "dy": random.uniform(-0.3, 0.3)
+                })
+            
+            print(f"✅ Created {num_witches} floating witches!")
+        except Exception as e:
+            print(f"⚠️ Could not create witches: {e}")
+    
+    def animate_witches(self):
+        """Animate the floating witches (smooth movement across screen)"""
+        if not self.witches:
+            return
+        
+        try:
+            for witch in self.witches:
+                # Move witch
+                self.canvas.move(witch["id"], witch["dx"], witch["dy"])
+                coords = self.canvas.coords(witch["id"])
+                
+                if len(coords) >= 2:
+                    x, y = coords[0], coords[1]
+                    
+                    # If witch goes off screen → reset to opposite side
+                    if x < -100:
+                        self.canvas.coords(witch["id"], 1300, random.randint(100, 400))
+                    elif x > 1300:
+                        self.canvas.coords(witch["id"], -100, random.randint(100, 400))
+                    
+                    # Keep vertical position in bounds
+                    if y < 50:
+                        witch["dy"] = abs(witch["dy"])
+                    elif y > 450:
+                        witch["dy"] = -abs(witch["dy"])
+        except Exception as e:
+            pass  # Silent fail to avoid spam
+        
+        # Continue animation
+        self.root.after(40, self.animate_witches)
+    
+    def fix_layering(self):
+        """Fix z-order layering to ensure proper visual hierarchy"""
+        # Layer order (bottom to top):
+        # 1. Animated background (Hogwarts castle)
+        # 2. Gradient & stars
+        # 3. Castle silhouette
+        # 4. Witches (floating in sky)
+        # 5. Decorations
+        # 6. Particles
+        # 7. UI elements (title, welcome, buttons)
+        # 8. Music button (always on top)
+        
+        try:
+            self.canvas.tag_lower("animated_bg")
+            self.canvas.tag_raise("gradient")
+            self.canvas.tag_raise("stars")
+            self.canvas.tag_raise("castle_bg")
+            self.canvas.tag_raise("witch")
+            self.canvas.tag_raise("decoration")
+            self.canvas.tag_raise("particle")
+            self.canvas.tag_raise("title")
+            self.canvas.tag_raise("subtitle")
+            self.canvas.tag_raise("welcome")
+            self.canvas.tag_raise("welcome_glow")
+            self.canvas.tag_raise("entry")
+            self.canvas.tag_raise("sort_btn")
+            self.canvas.tag_raise("result")
+            self.canvas.tag_raise("persistent_music")
+        except Exception as e:
+            print(f"⚠️ Layering adjustment failed: {e}")
     
     def on_button_hover(self, button, color):
         """Button hover effect with professional styling"""
@@ -1837,6 +1994,9 @@ class SortingHatGUI:
         self.canvas.itemconfig("restart_btn", state="normal")
         self.canvas.itemconfig("maze_btn", state="normal")
         
+        # Fix layering to ensure proper display
+        self.fix_layering()
+        
         # Ensure music button stays on top
         self.canvas.tag_raise("persistent_music")
         
@@ -1854,6 +2014,7 @@ class SortingHatGUI:
         self.canvas.delete("castle_glow")
         self.canvas.delete("student")
         self.canvas.delete("theme_bg")
+        self.canvas.delete("result_decoration")  # Clean up result decorations
         
         # Reset theme
         self.current_theme = "welcome"
@@ -1876,6 +2037,9 @@ class SortingHatGUI:
         self.canvas.itemconfig("entry", state="normal")
         self.canvas.itemconfig("sort_btn", state="normal")
         
+        # Fix layering after restart
+        self.fix_layering()
+        
         # Ensure music button stays on top
         self.canvas.tag_raise("persistent_music")
     
@@ -1888,10 +2052,14 @@ class SortingHatGUI:
         self.canvas.delete("castle")
         self.canvas.delete("castle_glow")
         self.canvas.delete("theme_bg")
+        self.canvas.delete("result_decoration")  # Clean up result decorations
         
         # Switch to maze theme
         self.current_theme = "maze"
         self.create_themed_background("maze")
+        
+        # Fix layering for maze screen
+        self.fix_layering()
         
         # Ensure music button stays visible
         self.canvas.tag_raise("persistent_music")
