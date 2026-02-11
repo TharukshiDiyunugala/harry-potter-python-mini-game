@@ -1160,7 +1160,7 @@ class SortingHatGUI:
         """Load animated background assets (Hogwarts castle + floating witches)"""
         try:
             # Load Hogwarts background image (JPG format)
-            bg_path = "assets/hogwarts_bg.jpg"
+            bg_path = "assests/hogwarts_bg.jpg"
             if os.path.exists(bg_path):
                 self.bg_image = Image.open(bg_path)
                 self.bg_image = self.bg_image.resize((1200, 800), Image.Resampling.LANCZOS)
