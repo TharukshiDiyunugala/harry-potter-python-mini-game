@@ -1171,7 +1171,7 @@ class SortingHatGUI:
                 print("   Using gradient background instead.")
             
             # Load single witch image and use it for all 3 witches
-            witch_path = "assets/witch1.png"
+            witch_path = "assests/witch1.png"
             if os.path.exists(witch_path):
                 witch_img = Image.open(witch_path).resize((80, 80), Image.Resampling.LANCZOS)
                 witch_photo = ImageTk.PhotoImage(witch_img)
