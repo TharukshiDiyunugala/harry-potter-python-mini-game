@@ -142,13 +142,9 @@ def show_title():
     """Display the game title with style"""
     clear_screen()
     
-    title_art = """
-    ╦ ╦╔═╗╔═╗╦ ╦╔═╗╦═╗╔╦╗╔═╗  ╔═╗╔═╗╦═╗╔╦╗╦╔╗╔╔═╗  ╦ ╦╔═╗╔╦╗
-    ╠═╣║ ║║ ╦║║║╠═╣╠╦╝ ║ ╚═╗  ╚═╗║ ║╠╦╝ ║ ║║║║║ ╦  ╠═╣╠═╣ ║ 
-    ╩ ╩╚═╝╚═╝╚╩╝╩ ╩╩╚═ ╩ ╚═╝  ╚═╝╚═╝╩╚═ ╩ ╩╝╚╝╚═╝  ╩ ╩╩ ╩ ╩ 
-    """
     
-    title_text = Text(title_art, style="bold magenta")
+    
+    title_text = Text(style="bold magenta")
     subtitle = Text("✨ The Magical Sorting Ceremony ✨", style="bold yellow")
     
     console.print(Align.center(title_text))
@@ -292,6 +288,13 @@ class SortingHatGUI:
         self.content_alpha = 0
         self.background_animation_step = 0
         
+        # Hat spinning animation variables
+        self.hat_angle = 0
+        self.hat_image = None
+        self.hat_photo = None
+        self.hat_spinning = True
+        self.hat_id = None
+        
         # Current screen theme
         self.current_theme = "welcome"  # welcome, sorting, result, maze
         self.current_house = None
@@ -313,6 +316,9 @@ class SortingHatGUI:
         self.bg_photo = None
         self.witch_images = []
         self.witches = []
+        
+        # Load spinning hat image
+        self.load_hat_image()
         
         # House colors with gradients - Professional palette with richer tones
         self.house_colors = {
@@ -380,40 +386,38 @@ class SortingHatGUI:
         self.create_persistent_music_button()
         
         # Title with fade-in animation - Professional styling with shadow
-        # Title shadow for depth
+        # Title shadow for depth (visible from start)
         self.title_shadow = self.canvas.create_text(
-            603, self.title_y + 3,
-            text="🎩 HOGWARTS SORTING HAT 🎩",
-            font=("Copperplate Gothic Bold", 42, "bold"),
+            603, 73,
+            text="The Official Sorting Ceremony",
+            font=("Harrington", 48, "bold"),
             fill="#000000",
             tags="title"
         )
         
         self.title_text = self.canvas.create_text(
-            600, self.title_y,
-            text="🎩 HOGWARTS SORTING HAT 🎩",
-            font=("Copperplate Gothic Bold", 42, "bold"),
+            600, 70,
+            text="The Official Sorting Ceremony",
+            font=("Harrington", 48, "bold"),
             fill="#FFD700",
             tags="title"
         )
         
-        # Subtitle shadow
+        # Subtitle shadow (visible from start)
         self.subtitle_shadow = self.canvas.create_text(
             602, 132,
             text="✨ The Magical Sorting Ceremony ✨",
-            font=("Palatino Linotype", 18, "italic"),
+            font=("Lucida Handwriting", 18, "italic"),
             fill="#000000",
-            tags="subtitle",
-            state="hidden"
+            tags="subtitle"
         )
         
         self.subtitle_text = self.canvas.create_text(
             600, 130,
             text="✨ The Magical Sorting Ceremony ✨",
-            font=("Palatino Linotype", 18, "italic"),
+            font=("Lucida Handwriting", 18, "italic"),
             fill="#E8D7C3",
-            tags="subtitle",
-            state="hidden"
+            tags="subtitle"
         )
         
         # Welcome frame with professional styling
@@ -451,7 +455,7 @@ class SortingHatGUI:
         
         self.welcome_text = tk.Label(
             self.welcome_frame,
-            text="Welcome to Hogwarts School of Witchcraft and Wizardry!\n\nThe Sorting Hat will determine\nwhich house you belong to...\n\n🦁 Gryffindor  🦡 Hufflepuff\n🦅 Ravenclaw  🐍 Slytherin",
+            text="⚡ ENTER THE MAGICAL REALM OF HOGWARTS ⚡\n\nPrepare to embark on an immersive journey through the ancient halls of wizardry.\nThe legendary Sorting Hat, imbued with the wisdom of the Four Founders,\nwill analyze your unique qualities and place you among your destined peers.\nYour magical legacy awaits...\n\n🦁 GRYFFINDOR  🦡 HUFFLEPUFF\n🦅 RAVENCLAW  🐍 SLYTHERIN",
             font=("Georgia", 14),
             fg="#E8D7C3",
             bg="#1a1a2e",
@@ -527,6 +531,32 @@ class SortingHatGUI:
             tags="sort_btn",
             state="hidden"
         )
+        
+        # START button - shown initially in the center
+        self.start_button = tk.Button(
+            self.canvas,
+            text="⚡ START CEREMONY ⚡",
+            command=self.on_start_clicked,
+            font=("Palatino Linotype", 24, "bold"),
+            bg="#740001",
+            fg="#FFD700",
+            activebackground="#AE0001",
+            activeforeground="#FFC500",
+            relief=tk.RAISED,
+            borderwidth=4,
+            padx=70,
+            pady=25,
+            cursor="hand2"
+        )
+        self.start_button_window = self.canvas.create_window(
+            600, 400,
+            window=self.start_button,
+            tags="start_btn"
+        )
+        
+        # Bind hover effects for START button
+        self.start_button.bind("<Enter>", lambda e: self.on_button_hover(self.start_button, "#AE0001"))
+        self.start_button.bind("<Leave>", lambda e: self.on_button_leave(self.start_button, "#740001"))
         
         # Result frame with professional styling
         self.result_frame = tk.Frame(self.canvas, bg="#0a0a0f")
@@ -965,36 +995,84 @@ class SortingHatGUI:
             )
     
     def start_animations(self):
-        """Start all entrance animations"""
+        """Start all entrance animations - show title and START button"""
         self.animate_particles()
-        self.animate_title_entrance()
         self.create_themed_background("welcome")
+        
+        # Title and START button are visible from the beginning
+        # Hat animation will start when START button is clicked
+        self.pulse_start_button_glow()
     
-    def animate_title_entrance(self):
-        """Animate title sliding down with elegance (including shadow)"""
-        if self.title_y < 70:
-            self.title_y += 3
-            self.canvas.coords(self.title_text, 600, self.title_y)
-            self.canvas.coords(self.title_shadow, 603, self.title_y + 3)
-            self.root.after(20, self.animate_title_entrance)
-        else:
-            # Show subtitle after title
-            self.canvas.itemconfig("subtitle", state="normal")
-            self.fade_in_content()
+    def on_start_clicked(self):
+        """Handle START button click - show spinning hat then name entry"""
+        # Hide START button
+        self.canvas.itemconfig("start_btn", state="hidden")
+        
+        # Show spinning hat
+        self.create_spinning_hat()
+        
+        # After 3 seconds, stop hat and show name entry
+        self.root.after(3000, self.stop_hat_and_show_entry)
     
-    def fade_in_content(self):
-        """Fade in the main content smoothly"""
-        if self.content_alpha < 1:
-            self.content_alpha += 0.04
-            self.root.after(30, self.fade_in_content)
+    def stop_hat_and_show_entry(self):
+        """Stop the hat spinning animation and show name entry form"""
+        self.hat_spinning = False
+        # Fade out the hat
+        self.fade_out_hat_to_entry()
+    
+    def fade_out_hat_to_entry(self, alpha=1.0):
+        """Fade out the spinning hat and show entry form"""
+        if alpha > 0:
+            alpha -= 0.05
+            # Move hat up while fading
+            self.canvas.move("spinning_hat", 0, -5)
+            self.root.after(30, lambda: self.fade_out_hat_to_entry(alpha))
         else:
-            # Show all elements
-            self.canvas.itemconfig("welcome", state="normal")
-            self.canvas.itemconfig("welcome_glow", state="normal")
+            # Remove the hat and show entry form
+            self.canvas.delete("spinning_hat")
+            # Show name entry and sort button
             self.canvas.itemconfig("entry", state="normal")
             self.canvas.itemconfig("sort_btn", state="normal")
-            
             self.pulse_glow_effect()
+    
+    def pulse_start_button_glow(self):
+        """Create pulsing glow effect for START button"""
+        if not hasattr(self, 'start_glow_alpha'):
+            self.start_glow_alpha = 0
+            self.start_glow_direction = 1
+        
+        self.start_glow_alpha += 0.04 * self.start_glow_direction
+        
+        if self.start_glow_alpha >= 1:
+            self.start_glow_direction = -1
+        elif self.start_glow_alpha <= 0:
+            self.start_glow_direction = 1
+        
+        # Update button glow
+        glow_intensity_r = int(116 + 58 * self.start_glow_alpha)
+        glow_intensity_g = int(0 + 1 * self.start_glow_alpha)
+        try:
+            if hasattr(self, 'start_button'):
+                self.start_button.config(bg=f"#{glow_intensity_r:02x}{glow_intensity_g:02x}01")
+        except:
+            pass
+        
+        # Continue pulsing if START button is still visible
+        try:
+            if self.canvas.itemcget("start_btn", "state") != "hidden":
+                self.root.after(60, self.pulse_start_button_glow)
+        except:
+            pass
+    
+    def animate_title_entrance(self):
+        """Animate title sliding down with elegance (including shadow) - DEPRECATED"""
+        # This method is no longer used as title is visible from start
+        pass
+    
+    def fade_in_content(self):
+        """Fade in the main content smoothly - DEPRECATED"""
+        # This method is no longer used in new flow
+        pass
     
     def pulse_glow_effect(self):
         """Create professional pulsing glow effect around buttons"""
@@ -1180,10 +1258,92 @@ class SortingHatGUI:
                 print(f"✅ Loaded witch1.png - creating 3 flying witches!")
             else:
                 print(f"⚠️ Witch image not found: {witch_path}")
-                print("   Add witch1.png with transparent background to assets folder")
+                print("   Add witch1.png with transparent background to assests folder")
                 
         except Exception as e:
             print(f"⚠️ Could not load background assets: {e}")
+    
+    def load_hat_image(self):
+        """Load the sorting hat image for spinning animation"""
+        try:
+            # Try to load hat.jpeg
+            hat_path = "assests/hat.jpeg"
+            if os.path.exists(hat_path):
+                self.hat_image = Image.open(hat_path)
+                # Resize to appropriate size (keeping aspect ratio)
+                self.hat_image = self.hat_image.resize((300, 300), Image.Resampling.LANCZOS)
+                self.hat_photo = ImageTk.PhotoImage(self.hat_image)
+                print("✅ Sorting Hat image loaded from hat.jpeg!")
+            else:
+                print(f"⚠️ Hat image not found: {hat_path}")
+                print("   Please add hat.jpeg to the assests folder for the spinning animation")
+                # Create a fallback text-based hat
+                self.hat_photo = None
+        except Exception as e:
+            print(f"⚠️ Could not load hat image: {e}")
+            self.hat_photo = None
+    
+    def create_spinning_hat(self):
+        """Create the spinning hat at the center of the screen"""
+        if self.hat_photo:
+            # Use the actual image
+            self.hat_id = self.canvas.create_image(
+                600, 400,
+                image=self.hat_photo,
+                tags="spinning_hat"
+            )
+        else:
+            # Fallback to emoji hat
+            self.hat_id = self.canvas.create_text(
+                600, 400,
+                text="🎩",
+                font=("Segoe UI Emoji", 150),
+                tags="spinning_hat"
+            )
+        
+        # Start the spinning animation
+        self.animate_spinning_hat()
+    
+    def animate_spinning_hat(self):
+        """Animate the spinning hat with rotation"""
+        if not self.hat_spinning:
+            return
+        
+        self.hat_angle += 10  # Rotation speed
+        
+        if self.hat_photo:
+            # Rotate the image
+            try:
+                rotated = self.hat_image.rotate(self.hat_angle, expand=True, resample=Image.BICUBIC)
+                self.hat_photo = ImageTk.PhotoImage(rotated)
+                self.canvas.itemconfig(self.hat_id, image=self.hat_photo)
+            except:
+                pass
+        else:
+            # For emoji, simulate rotation with scale effect
+            scale = 1 + 0.1 * abs(math.sin(self.hat_angle * math.pi / 180))
+            size = int(150 * scale)
+            self.canvas.itemconfig(self.hat_id, font=("Segoe UI Emoji", size))
+        
+        # Continue animation
+        if self.hat_spinning:
+            self.root.after(50, self.animate_spinning_hat)
+    
+    def stop_hat_spinning(self):
+        """Stop the hat spinning animation and proceed to main content - DEPRECATED"""
+        # This method is replaced by stop_hat_and_show_entry in new flow
+        self.hat_spinning = False
+        self.fade_out_hat()
+    
+    def fade_out_hat(self, alpha=1.0):
+        """Fade out the spinning hat - DEPRECATED"""
+        # This method is replaced by fade_out_hat_to_entry in new flow
+        if alpha > 0:
+            alpha -= 0.05
+            self.canvas.move("spinning_hat", 0, -5)
+            self.root.after(30, lambda: self.fade_out_hat(alpha))
+        else:
+            self.canvas.delete("spinning_hat")
     
     def create_animated_background(self):
         """Create the Hogwarts castle background (static image)"""
@@ -2031,11 +2191,15 @@ class SortingHatGUI:
         # Hide maze button
         self.canvas.itemconfig("maze_btn", state="hidden")
         
-        # Fade in input elements
-        self.canvas.itemconfig("welcome", state="normal")
-        self.canvas.itemconfig("welcome_glow", state="normal")
-        self.canvas.itemconfig("entry", state="normal")
-        self.canvas.itemconfig("sort_btn", state="normal")
+        # Hide entry form and show START button again
+        self.canvas.itemconfig("welcome", state="hidden")
+        self.canvas.itemconfig("welcome_glow", state="hidden")
+        self.canvas.itemconfig("entry", state="hidden")
+        self.canvas.itemconfig("sort_btn", state="hidden")
+        
+        # Show START button
+        self.canvas.itemconfig("start_btn", state="normal")
+        self.pulse_start_button_glow()
         
         # Fix layering after restart
         self.fix_layering()
