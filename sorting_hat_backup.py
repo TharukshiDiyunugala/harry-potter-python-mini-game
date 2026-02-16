@@ -295,6 +295,12 @@ class SortingHatGUI:
         self.hat_spinning = True
         self.hat_id = None
         
+        # Hat floating animation variables (up-down motion)
+        self.hat_y_offset = 0
+        self.hat_y_direction = 1  # 1 for down, -1 for up
+        self.hat_y_speed = 2  # pixels per frame
+        self.hat_y_range = 40  # total vertical range in pixels
+        
         # Current screen theme
         self.current_theme = "welcome"  # welcome, sorting, result, maze
         self.current_house = None
@@ -317,8 +323,13 @@ class SortingHatGUI:
         self.witch_images = []
         self.witches = []
         
+        # Begin button image
+        self.begin_button_image = None
+        self.begin_button_photo = None
+        
         # Load spinning hat image
         self.load_hat_image()
+        self.load_begin_button_image()
         
         # House colors with gradients - Professional palette with richer tones
         self.house_colors = {
@@ -434,25 +445,6 @@ class SortingHatGUI:
             state="hidden"
         )
         
-        # Add subtle glow effect to frame with enhanced styling
-        self.canvas.create_rectangle(
-            250, 220, 950, 420,
-            outline="#F4C430",
-            width=3,
-            tags=("welcome", "welcome_glow")
-        )
-        
-        # Add corner decorations
-        corners = [(250, 220), (950, 220), (250, 420), (950, 420)]
-        for cx, cy in corners:
-            self.canvas.create_text(
-                cx, cy,
-                text="✦",
-                font=("Segoe UI Emoji", 20),
-                fill="#FFD700",
-                tags="welcome"
-            )
-        
         self.welcome_text = tk.Label(
             self.welcome_frame,
             text="⚡ ENTER THE MAGICAL REALM OF HOGWARTS ⚡\n\nPrepare to embark on an immersive journey through the ancient halls of wizardry.\nThe legendary Sorting Hat, imbued with the wisdom of the Four Founders,\nwill analyze your unique qualities and place you among your destined peers.\nYour magical legacy awaits...\n\n🦁 GRYFFINDOR  🦡 HUFFLEPUFF\n🦅 RAVENCLAW  🐍 SLYTHERIN",
@@ -532,31 +524,48 @@ class SortingHatGUI:
             state="hidden"
         )
         
-        # START button - shown initially in the center
-        self.start_button = tk.Button(
-            self.canvas,
-            text="⚡ START CEREMONY ⚡",
-            command=self.on_start_clicked,
-            font=("Palatino Linotype", 24, "bold"),
-            bg="#740001",
-            fg="#FFD700",
-            activebackground="#AE0001",
-            activeforeground="#FFC500",
-            relief=tk.RAISED,
-            borderwidth=4,
-            padx=70,
-            pady=25,
-            cursor="hand2"
-        )
+        # START button - shown initially in the center (using image)
+        if self.begin_button_photo:
+            # Create button using the image
+            self.start_button = tk.Button(
+                self.canvas,
+                image=self.begin_button_photo,
+                command=self.on_start_clicked,
+                borderwidth=0,
+                highlightthickness=0,
+                relief=tk.FLAT,
+                bg="#0a0a0f",
+                activebackground="#0a0a0f",
+                cursor="hand2"
+            )
+        else:
+            # Fallback to text button if image not found
+            self.start_button = tk.Button(
+                self.canvas,
+                text="⚡ START CEREMONY ⚡",
+                command=self.on_start_clicked,
+                font=("Palatino Linotype", 24, "bold"),
+                bg="#740001",
+                fg="#FFD700",
+                activebackground="#AE0001",
+                activeforeground="#FFC500",
+                relief=tk.RAISED,
+                borderwidth=4,
+                padx=70,
+                pady=25,
+                cursor="hand2"
+            )
+        
         self.start_button_window = self.canvas.create_window(
             600, 400,
             window=self.start_button,
             tags="start_btn"
         )
         
-        # Bind hover effects for START button
-        self.start_button.bind("<Enter>", lambda e: self.on_button_hover(self.start_button, "#AE0001"))
-        self.start_button.bind("<Leave>", lambda e: self.on_button_leave(self.start_button, "#740001"))
+        # Bind hover effects for START button (only for text button)
+        if not self.begin_button_photo:
+            self.start_button.bind("<Enter>", lambda e: self.on_button_hover(self.start_button, "#AE0001"))
+            self.start_button.bind("<Leave>", lambda e: self.on_button_leave(self.start_button, "#740001"))
         
         # Result frame with professional styling
         self.result_frame = tk.Frame(self.canvas, bg="#0a0a0f")
@@ -1037,6 +1046,10 @@ class SortingHatGUI:
     
     def pulse_start_button_glow(self):
         """Create pulsing glow effect for START button"""
+        # Only apply glow to text button, not image button
+        if self.begin_button_photo:
+            return
+            
         if not hasattr(self, 'start_glow_alpha'):
             self.start_glow_alpha = 0
             self.start_glow_direction = 1
@@ -1270,10 +1283,35 @@ class SortingHatGUI:
             hat_path = "assests/hat.jpeg"
             if os.path.exists(hat_path):
                 self.hat_image = Image.open(hat_path)
+                
+                # Remove background by making it transparent
+                self.hat_image = self.hat_image.convert("RGBA")
+                datas = self.hat_image.getdata()
+                
+                # Get the background color from corner (top-left pixel)
+                bg_color = self.hat_image.getpixel((0, 0))[:3]
+                
+                # Create new image data with transparency
+                newData = []
+                for item in datas:
+                    # Calculate color difference from background
+                    r_diff = abs(item[0] - bg_color[0])
+                    g_diff = abs(item[1] - bg_color[1])
+                    b_diff = abs(item[2] - bg_color[2])
+                    
+                    # If pixel is similar to background color, make it transparent
+                    # Threshold of 40 allows for slight variations in background
+                    if r_diff < 40 and g_diff < 40 and b_diff < 40:
+                        newData.append((255, 255, 255, 0))  # Transparent
+                    else:
+                        newData.append(item)
+                
+                self.hat_image.putdata(newData)
+                
                 # Resize to appropriate size (keeping aspect ratio)
                 self.hat_image = self.hat_image.resize((300, 300), Image.Resampling.LANCZOS)
                 self.hat_photo = ImageTk.PhotoImage(self.hat_image)
-                print("✅ Sorting Hat image loaded from hat.jpeg!")
+                print("✅ Sorting Hat image loaded from hat.jpeg with background removed!")
             else:
                 print(f"⚠️ Hat image not found: {hat_path}")
                 print("   Please add hat.jpeg to the assests folder for the spinning animation")
@@ -1282,6 +1320,24 @@ class SortingHatGUI:
         except Exception as e:
             print(f"⚠️ Could not load hat image: {e}")
             self.hat_photo = None
+    
+    def load_begin_button_image(self):
+        """Load the begin button image"""
+        try:
+            button_path = "assests/images.jpeg"
+            if os.path.exists(button_path):
+                self.begin_button_image = Image.open(button_path)
+                # Resize to appropriate button size (width, height)
+                self.begin_button_image = self.begin_button_image.resize((300, 150), Image.Resampling.LANCZOS)
+                self.begin_button_photo = ImageTk.PhotoImage(self.begin_button_image)
+                print("✅ Begin button image loaded from images.jpeg!")
+            else:
+                print(f"⚠️ Begin button image not found: {button_path}")
+                print("   Using default text button instead")
+                self.begin_button_photo = None
+        except Exception as e:
+            print(f"⚠️ Could not load begin button image: {e}")
+            self.begin_button_photo = None
     
     def create_spinning_hat(self):
         """Create the spinning hat at the center of the screen"""
@@ -1305,29 +1361,24 @@ class SortingHatGUI:
         self.animate_spinning_hat()
     
     def animate_spinning_hat(self):
-        """Animate the spinning hat with rotation"""
+        """Animate the hat with floating up-down motion (pop-up/bounce effect)"""
         if not self.hat_spinning:
             return
         
-        self.hat_angle += 10  # Rotation speed
+        # Calculate vertical movement
+        dy = self.hat_y_speed * self.hat_y_direction
         
-        if self.hat_photo:
-            # Rotate the image
-            try:
-                rotated = self.hat_image.rotate(self.hat_angle, expand=True, resample=Image.BICUBIC)
-                self.hat_photo = ImageTk.PhotoImage(rotated)
-                self.canvas.itemconfig(self.hat_id, image=self.hat_photo)
-            except:
-                pass
-        else:
-            # For emoji, simulate rotation with scale effect
-            scale = 1 + 0.1 * abs(math.sin(self.hat_angle * math.pi / 180))
-            size = int(150 * scale)
-            self.canvas.itemconfig(self.hat_id, font=("Segoe UI Emoji", size))
+        # Move the hat vertically
+        self.canvas.move(self.hat_id, 0, dy)
+        self.hat_y_offset += dy
+        
+        # Reverse direction when reaching the limits
+        if abs(self.hat_y_offset) >= self.hat_y_range:
+            self.hat_y_direction *= -1
         
         # Continue animation
         if self.hat_spinning:
-            self.root.after(50, self.animate_spinning_hat)
+            self.root.after(30, self.animate_spinning_hat)  # ~33fps for smooth motion
     
     def stop_hat_spinning(self):
         """Stop the hat spinning animation and proceed to main content - DEPRECATED"""
