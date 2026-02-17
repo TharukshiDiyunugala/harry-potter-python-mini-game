@@ -1,0 +1,182 @@
+/* Global Styles for Hogwarts Sorting Hat Game */
+
+:root {
+  --primary-gold: #FFD700;
+  --secondary-gold: #F4C430;
+  --dark-bg: #0a0a0f;
+  --gryffindor: #740001;
+  --hufflepuff: #FFDB00;
+  --ravenclaw: #0E1A40;
+  --slytherin: #1A472A;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Playfair Display', serif;
+  background: var(--dark-bg);
+  color: #fff;
+  overflow: hidden;
+}
+
+.magical-button {
+  font-family: 'Cinzel', serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  padding: 18px 45px;
+  border: 3px solid var(--primary-gold);
+  background: linear-gradient(135deg, rgba(116, 0, 1, 0.9), rgba(174, 0, 1, 0.9));
+  color: var(--primary-gold);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+.magical-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+  background: linear-gradient(135deg, rgba(174, 0, 1, 1), rgba(116, 0, 1, 1));
+}
+
+.magical-button:active {
+  transform: translateY(0);
+}
+
+.magical-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.magical-button:hover::before {
+  left: 100%;
+}
+
+.text-shimmer {
+  background: linear-gradient(90deg, #FFD700, #FFF, #FFD700);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.5s;
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+
+.particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--primary-gold);
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.8;
+  animation: float 4s infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateY(-100px) translateX(20px);
+    opacity: 0.3;
+  }
+}
+
+.glow {
+  box-shadow: 0 0 20px currentColor;
+}
+
+input.magical-input {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  padding: 15px 30px;
+  width: 400px;
+  max-width: 90%;
+  text-align: center;
+  background: rgba(26, 26, 46, 0.8);
+  border: 2px solid var(--primary-gold);
+  border-radius: 8px;
+  color: var(--primary-gold);
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+input.magical-input:focus {
+  border-color: var(--secondary-gold);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+  background: rgba(26, 26, 46, 1);
+}
+
+input.magical-input::placeholder {
+  color: rgba(255, 215, 0, 0.5);
+}
+
+.stars {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: white;
+  border-radius: 50%;
+  animation: twinkle 2s infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a2e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-gold);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--secondary-gold);
+}
