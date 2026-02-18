@@ -12,7 +12,7 @@
 
     <!-- Music Control -->
     <button class="music-toggle" @click="toggleMusic" :class="{ playing: musicPlaying }">
-      {{ musicPlaying ? '🔇' : '🔊' }}
+      {{ musicPlaying ? '🔊' : '🔇' }}
     </button>
 
     <!-- Main Content -->
@@ -76,6 +76,14 @@ export default {
       audio.value = new Audio('/assets/theme.mp3')
       audio.value.loop = true
       audio.value.volume = 0.3 // 30% volume
+      
+      // Add event listeners for debugging
+      audio.value.addEventListener('loadeddata', () => {
+        console.log('Audio loaded successfully')
+      })
+      audio.value.addEventListener('error', (e) => {
+        console.error('Audio loading error:', e)
+      })
     })
 
     const showNameEntry = () => {
@@ -101,6 +109,14 @@ export default {
       houseInfo.value = null
       currentScreen.value = 'welcome'
     }
+
+    const startMaze = () => {
+      currentScreen.value = 'maze'
+    }
+
+    const toggleMusic = () => {
+      musicPlaying.value = !musicPlaying.value
+      
       if (musicPlaying.value) {
         // Play music
         audio.value?.play().catch(error => {
@@ -111,14 +127,6 @@ export default {
         // Pause music
         audio.value?.pause()
       }
-
-    const startMaze = () => {
-      currentScreen.value = 'maze'
-    }
-
-    const toggleMusic = () => {
-      musicPlaying.value = !musicPlaying.value
-      // Music functionality can be added here
     }
 
     const getStarStyle = (n) => {
