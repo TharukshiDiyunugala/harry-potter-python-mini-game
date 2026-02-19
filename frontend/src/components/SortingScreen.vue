@@ -20,9 +20,14 @@
 
       <!-- Thinking Message -->
       <div class="message-container">
-        <h2 class="thinking-text">🤔 Hmm...{{ studentName }}...</h2>
+        <h2 class="thinking-text">🎩 {{ currentPhaseTitle }}</h2>
         <p class="analyzing-text">{{ thinkingMessage }}<span class="dots">{{ dots }}</span></p>
-        <p class="subtext">✨ Analyzing your magical traits... ✨</p>
+        <p class="subtext">{{ subtextMessage }}</p>
+        
+        <!-- Progress Bar -->
+        <div class="progress-container">
+          <div class="progress-bar" :style="{ width: progress + '%' }"></div>
+        </div>
       </div>
 
       <!-- Magical Energy Rings -->
@@ -51,6 +56,17 @@ export default {
   setup(props, { emit }) {
     const thinkingMessage = ref('Difficult. Very difficult')
     const dots = ref('.')
+    const currentPhaseTitle = ref(`Hmm...${props.studentName}...`)
+    const subtextMessage = ref('✨ Analyzing your magical traits... ✨')
+    const progress = ref(0)
+
+    const thinkingPhrases = [
+      'Difficult. Very difficult',
+      'Plenty of courage, I see',
+      'Not a bad mind, either',
+      'There\'s talent, oh my goodness, yes',
+      'And a nice thirst to prove yourself'
+    ]
 
     onMounted(() => {
       // Animate dots
@@ -60,11 +76,39 @@ export default {
         dots.value = '.'.repeat(dotCount)
       }, 500)
 
-      // Perform sorting after 3 seconds
+      // Cycle through thinking phrases
+      let phraseIndex = 0
+      const phraseInterval = setInterval(() => {
+        phraseIndex = (phraseIndex + 1) % thinkingPhrases.length
+        thinkingMessage.value = thinkingPhrases[phraseIndex]
+      }, 1500)
+
+      // Update progress
+      const progressInterval = setInterval(() => {
+        progress.value += 2
+        if (progress.value >= 100) {
+          clearInterval(progressInterval)
+        }
+      }, 60)
+
+      // Update subtitle messages
+      setTimeout(() => {
+        subtextMessage.value = '🔮 Consulting the ancient magic... 🔮'
+      }, 1500)
+      
+      setTimeout(() => {
+        subtextMessage.value = '⚡ Making the final decision... ⚡'
+      }, 3,
+      currentPhaseTitle,
+      subtextMessage,
+      progress000)
+
+      // Perform sorting after 5 seconds
       setTimeout(async () => {
         clearInterval(dotInterval)
+        clearInterval(phraseInterval)
         await performSorting()
-      }, 3000)
+      }, 5000)
     })
 
     const performSorting = async () => {
@@ -185,7 +229,35 @@ export default {
   0%, 100% {
     opacity: 1;
   }
-  50% {
+ 
+
+.progress-container {
+  margin-top: 30px;
+  width: 100%;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid #FFD700;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #FFD700, #FFA500, #FFD700);
+  background-size: 200% 100%;
+  animation: progressShimmer 2s linear infinite;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+}
+
+@keyframes progressShimmer {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
+} 50% {
     opacity: 0.6;
   }
 }

@@ -39,11 +39,29 @@
       <!-- Action Buttons -->
       <div class="action-buttons">
         <button class="magical-button maze-button" @click="startMaze">
-          🌟 ENTER THE TRIWIZARD MAZE 🌟
+          <span class="btn-icon">🌟</span>
+          <span>ENTER THE TRIWIZARD MAZE</span>
+          <span class="btn-icon">🌟</span>
         </button>
         <button class="magical-button restart-button" @click="restart">
-          🔄 Sort Another Student
+          <span class="btn-icon">🔄</span>
+          <span>Sort Another Student</span>
         </button>
+        <button class="magical-button share-button" @click="shareResult">
+          <span class="btn-icon">📢</span>
+          <span>Share Your House</span>
+        </button>
+      </div>
+      
+      <!-- House Description -->
+      <div class="house-details" :style="{ borderColor: houseColor }">
+        <h3 class="details-title">About Your House</h3>
+        <div class="house-qualities">
+          <div class="quality-item" v-for="(quality, index) in houseQualities" :key="index">
+            <span class="quality-icon">✨</span>
+            <span class="quality-text">{{ quality }}</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -65,6 +83,16 @@ export default {
 
     const houseColor = computed(() => props.houseInfo?.color || '#FFD700')
     const houseGlow = computed(() => props.houseInfo?.glowColor || '#FFD700')
+
+    const houseQualities = computed(() => {
+      const qualities = {
+        'Gryffindor': ['Courage in the face of danger', 'Chivalry and honor', 'Determination and nerve'],
+        'Hufflepuff': ['Hard work and dedication', 'Fair play and loyalty', 'Patience and kindness'],
+        'Ravenclaw': ['Intelligence and wisdom', 'Creativity and wit', 'Love of learning'],
+        'Slytherin': ['Ambition and cunning', 'Resourcefulness', 'Leadership and determination']
+      }
+      return qualities[props.house] || []
+    })
 
     const houseBg = computed(() => {
       const colors = {
@@ -96,6 +124,22 @@ export default {
       emit('startMaze')
     }
 
+    const shareResult = () => {
+      const text = `🎭 I've been sorted into ${props.house}! 🎭\n${props.houseInfo?.traits}\n\n#HarryPotter #SortingHat`
+      
+      if (navigator.share) {
+        navigator.share({
+          title: 'Hogwarts Sorting',
+          text: text
+        }).catch(err => console.log('Share cancelled', err))
+      } else {
+        // Fallback: copy to clipboard
+        navigator.clipboard.writeText(text)
+          .then(() => alert('✅ Result copied to clipboard!'))
+          .catch(() => alert('📎 Share: ' + text))
+      }
+    }
+
     const getHouseParticleStyle = (n) => {
       return {
         left: `${Math.random() * 100}%`,
@@ -124,8 +168,10 @@ export default {
       houseGlow,
       houseBg,
       cardBg,
+      houseQualities,
       restart,
       startMaze,
+      shareResult,
       getHouseParticleStyle,
       getExplosionStyle
     }
@@ -335,16 +381,112 @@ export default {
   gap: 20px;
   justify-content: center;
   flex-wrap: wrap;
+  margin-bottom: 30px;
+}
+
+.btn-icon {
+  font-size: 1.3rem;
 }
 
 .maze-button {
-  background: linear-gradient(135deg, rgba(14, 26, 64, 0.9), rgba(34, 47, 91, 0.9));
+  background: linear-gradient(135deg, rgba(14, 26, 64, 0.98), rgba(34, 47, 91, 0.98)) !important;
+  border: 4px solid #5DADE2 !important;
+  color: #5DADE2 !important;
+  font-size: 1.3rem !important;
+  padding: 20px 40px !important;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 0 30px rgba(93, 173, 226, 0.6);
+}
+
+.maze-button:hover {
+  box-shadow: 0 0 50px rgba(93, 173, 226, 0.9) !important;
+  transform: translateY(-5px) !important;
 }
 
 .restart-button {
-  background: linear-gradient(135deg, rgba(26, 26, 46, 0.9), rgba(42, 42, 62, 0.9));
-  font-size: 1rem;
-  padding: 15px 35px;
+  background: linear-gradient(135deg, rgba(116, 0, 1, 0.98), rgba(174, 0, 1, 0.98)) !important;
+  border: 4px solid #FFD700 !important;
+  color: #FFD700 !important;
+  font-size: 1.1rem !important;
+  padding: 18px 35px !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+}
+
+.restart-button:hover {
+  box-shadow: 0 0 50px rgba(255, 215, 0, 0.8) !important;
+  transform: translateY(-5px) !important;
+}
+
+.share-button {
+  background: linear-gradient(135deg, rgba(26, 71, 42, 0.98), rgba(42, 91, 62, 0.98)) !important;
+  border: 4px solid #5DBE71 !important;
+  color: #5DBE71 !important;
+  font-size: 1.1rem !important;
+  padding: 18px 35px !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 0 30px rgba(93, 190, 113, 0.5);
+}
+
+.share-button:hover {
+  box-shadow: 0 0 50px rgba(93, 190, 113, 0.8) !important;
+  transform: translateY(-5px) !important;
+}
+
+.house-details {
+  border: 3px solid;
+  border-radius: 15px;
+  padding: 30px;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  margin-top: 10px;
+}
+
+.details-title {
+  font-family: 'Cinzel', serif;
+  font-size: 1.8rem;
+  color: #FFD700;
+  margin-bottom: 20px;
+  text-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
+}
+
+.house-qualities {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.quality-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 1.2rem;
+  color: #E8D7C3;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  transition: all 0.3s ease;
+}
+
+.quality-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(10px);
+}
+
+.quality-icon {
+  font-size: 1.5rem;
+  color: #FFD700;
+}
+
+.quality-text {
+  flex: 1;
+  font-weight: 500;
 }
 
 @media (max-width: 768px) {
@@ -358,10 +500,24 @@ export default {
   
   .action-buttons {
     flex-direction: column;
+    width: 100%;
   }
   
   .magical-button {
     width: 100%;
+  }
+  
+  .maze-button {
+    font-size: 1.1rem !important;
+    padding: 18px 30px !important;
+  }
+  
+  .house-details {
+    padding: 20px;
+  }
+  
+  .quality-item {
+    font-size: 1rem;
   }
 }
 </style>

@@ -4,9 +4,23 @@
       <!-- Title -->
       <h1 class="maze-title text-shimmer">🌟 THE TRIWIZARD MAZE 🌟</h1>
 
-      <!-- Game Status -->
-      <div v-if="!gameWon" class="maze-instructions">
-        <p>Use Arrow Keys ⬆️⬇️⬅️➡️ to navigate | Find the Triwizard Cup 🏆</p>
+      <!-- Game Status and Controls -->
+      <div v-if="!gameWon" class="game-header">
+        <div class="maze-instructions">
+          <p>🎮 Use <strong>Arrow Keys</strong> (⬆️⬇️⬅️➡️) or <strong>WASD</strong> to navigate</p>
+          <p>🎯 Find the <strong>Triwizard Cup</strong> 🏆 to win!</p>
+        </div>
+        
+        <div class="game-stats">
+          <div class="stat">
+            <span class="stat-label">👣 Moves:</span>
+            <span class="stat-value">{{ moveCount }}</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">⏱️ Time:</span>
+            <span class="stat-value">{{ formattedTime }}</span>
+          </div>
+        </div>
       </div>
 
       <!-- Maze Grid -->
@@ -40,33 +54,65 @@
           <p class="win-subtitle">⭐ The Triwizard Cup is yours! ⭐</p>
           <p class="champion-text">Well Done, Champion Wizard!</p>
           
-          <button class="magical-button" @click="backToResult">
-            🔄 Return to Sorting Hat
-          </button>
+          <div class="win-stats">
+            <div class="win-stat">
+              <span>👣 Total Moves:</span>
+              <strong>{{ moveCount }}</strong>
+            </div>
+            <div class="win-stat">
+              <span>⏱️ Time Taken:</span>
+              <strong>{{ formattedTime }}</strong>
+            </div>
+          </div>
+          
+          <div class="win-buttons">
+            <button class="magical-button primary-btn" @click="backToResult">
+              🎯 Return to Sorting Result
+            </button>
+            <button class="magical-button secondary-btn" @click="resetMaze">
+              🔄 Play Again
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Back Button -->
-      <button v-if="!gameWon" class="back-button magical-button" @click="backToResult">
-        ⬅️ Back to Sorting Hat
-      </button>
+      <!-- Control Buttons -->
+      <div v-if="!gameWon" class="control-buttons">
+        <button class="magical-button back-button" @click="backToResult">
+          ⬅️ Back to Result
+        </button>
+        <button class="magical-button reset-button" @click="resetMaze">
+          🔄 Reset Maze
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import axios from 'axios'
 
 export default {
   name: 'MazeGame',
-  emits: ['back'],
+  emits: ['back', 'home'],
   setup(props, { emit }) {
     const maze = ref([])
     const playerPos = ref({ x: 1, y: 1 })
     const exitPos = ref({ x: 13, y: 13 })
     const gameWon = ref(false)
     const mazeGrid = ref(null)
+    const moveCount = ref(0)
+    const startTime = ref(null)
+    const elapsedTime = ref(0)
+    const timerInterval = ref(null)
+
+    const formattedTime = computed(() => {
+      const seconds = Math.floor(elapsedTime.value / 1000)
+      const minutes = Math.floor(seconds / 60)
+      const secs = seconds % 60
+      return `${minutes}:${secs.toString().padStart(2, '0')}`
+    })
 
     onMounted(async () => {
       await loadMaze()
@@ -74,7 +120,28 @@ export default {
       setTimeout(() => {
         mazeGrid.value?.focus()
       }, 100)
+      
+      // Start timer
+      startTimer()
     })
+
+    onUnmounted(() => {
+      stopTimer()
+    })
+
+    const startTimer = () => {
+      startTime.value = Date.now()
+      timerInterval.value = setInterval(() => {
+        elapsedTime.value = Date.now() - startTime.value
+      }, 100)
+    }
+
+    const stopTimer = () => {
+      if (timerInterval.value) {
+        clearInterval(timerInterval.value)
+        timerInterval.value = null
+      }
+    }
 
     const loadMaze = async () => {
       try {
@@ -122,21 +189,25 @@ export default {
     const handleKeyPress = (event) => {
       if (gameWon.value) return
 
-      const key = event.key
+      const key = event.key.toLowerCase()
       let newX = playerPos.value.x
       let newY = playerPos.value.y
 
       switch (key) {
-        case 'ArrowUp':
+        case 'arrowup':
+        case 'w':
           newY -= 1
           break
-        case 'ArrowDown':
+        case 'arrowdown':
+        case 's':
           newY += 1
           break
-        case 'ArrowLeft':
+        case 'arrowleft':
+        case 'a':
           newX -= 1
           break
-        case 'ArrowRight':
+        case 'arrowright':
+        case 'd':
           newX += 1
           break
         default:
@@ -154,16 +225,31 @@ export default {
         maze.value[newY][newX] === 0
       ) {
         playerPos.value = { x: newX, y: newY }
+        moveCount.value++
 
         // Check if reached exit
         if (newX === exitPos.value.x && newY === exitPos.value.y) {
           gameWon.value = true
+          stopTimer()
         }
       }
     }
 
     const backToResult = () => {
+      stopTimer()
       emit('back')
+    }
+
+    const resetMaze = async () => {
+      gameWon.value = false
+      moveCount.value = 0
+      elapsedTime.value = 0
+      stopTimer()
+      await loadMaze()
+      startTimer()
+      setTimeout(() => {
+        mazeGrid.value?.focus()
+      }, 100)
     }
 
     return {
@@ -172,8 +258,11 @@ export default {
       exitPos,
       gameWon,
       mazeGrid,
+      moveCount,
+      formattedTime,
       handleKeyPress,
-      backToResult
+      backToResult,
+      resetMaze
     }
   }
 }
@@ -189,34 +278,80 @@ export default {
   justify-content: center;
   background: linear-gradient(135deg, #15201a 0%, #1a3025 100%);
   z-index: 10;
+  overflow-y: auto;
+  padding: 20px;
 }
 
 .maze-container {
   text-align: center;
   padding: 20px;
+  max-width: 100%;
 }
 
 .maze-title {
   font-family: 'Cinzel', serif;
   font-size: 2.5rem;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
 }
 
-.maze-instructions {
-  background: rgba(26, 26, 46, 0.9);
-  border: 2px solid #FFD700;
-  border-radius: 10px;
-  padding: 15px 30px;
+.game-header {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
   margin-bottom: 25px;
+}
+
+.maze-instructions {
+  background: rgba(26, 26, 46, 0.95);
+  border: 3px solid #FFD700;
+  border-radius: 15px;
+  padding: 15px 30px;
   display: inline-block;
+  box-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
 }
 
 .maze-instructions p {
   color: #FFD700;
   font-size: 1.1rem;
   font-weight: 600;
-  margin: 0;
+  margin: 5px 0;
+}
+
+.maze-instructions strong {
+  color: #FFF;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+}
+
+.game-stats {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.stat {
+  background: rgba(26, 26, 46, 0.95);
+  border: 3px solid #5DBE71;
+  border-radius: 12px;
+  padding: 12px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  box-shadow: 0 0 20px rgba(93, 190, 113, 0.3);
+}
+
+.stat-label {
+  color: #5DBE71;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.stat-value {
+  color: #FFF;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(93, 190, 113, 0.5);
 }
 
 .maze-grid {
@@ -308,12 +443,13 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.95);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   animation: fadeIn 0.5s ease-out;
+  padding: 20px;
 }
 
 @keyframes fadeIn {
@@ -326,13 +462,13 @@ export default {
 }
 
 .win-content {
-  background: linear-gradient(135deg, rgba(26, 26, 46, 0.95), rgba(15, 15, 30, 0.95));
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.98), rgba(15, 15, 30, 0.98));
   border: 4px solid #FFD700;
-  border-radius: 20px;
+  border-radius: 25px;
   padding: 50px 70px;
   text-align: center;
-  max-width: 600px;
-  box-shadow: 0 0 60px rgba(255, 215, 0, 0.8);
+  max-width: 650px;
+  box-shadow: 0 0 80px rgba(255, 215, 0, 0.9);
   animation: slideIn 0.6s ease-out;
 }
 
@@ -386,8 +522,89 @@ export default {
 .champion-text {
   font-size: 1.3rem;
   color: #E8D7C3;
-  margin-bottom: 40px;
+  margin-bottom: 30px;
   font-style: italic;
+}
+
+.win-stats {116, 0, 1, 0.95), rgba(174, 0, 1, 0.95));
+  border: 3px solid #FFD700;
+  font-size: 1.1rem;
+  padding: 15px 35px;
+}
+
+.reset-button {
+  background: linear-gradient(135deg, rgba(26, 71, 42, 0.95), rgba(42, 91, 62, 0.95));
+  border: 3px solid #5DBE71;
+  color: #5DBE71;
+  font-size: 1.1rem;
+  padding: 15px 35px;
+}
+
+.reset-button:hover {
+  box-shadow: 0 0 30px rgba(93, 190, 113, 0.7);
+}
+
+@media (max-width: 768px) {
+  .maze-title {
+    font-size: 1.8rem;
+  }
+  
+  .game-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .game-stats {
+    justify-content: center
+.win-stat {
+  background: rgba(93, 190, 113, 0.2);
+  border: 2px solid #5DBE71;
+  border-radius: 12px;
+  padding: 15px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.win-stat span {
+  color: #5DBE71;
+  font-size: 1rem;
+}
+
+.win-stat strong {
+  color: #FFF;
+  font-size: 1.8rem;
+  text-shadow: 0 0 10px rgba(93, 190, 113, 0.7);
+}
+
+.win-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, rgba(116, 0, 1, 0.95), rgba(174, 0, 1, 0.95)) !important;
+  border: 3px solid #FFD700 !important;
+  font-size: 1.1rem !important;
+  padding: 18px 35px !important;
+}
+
+.secondary-btn {
+  background: linear-gradient(135deg, rgba(26, 71, 42, 0.95), rgba(42, 91, 62, 0.95)) !important;
+  border: 3px solid #5DBE71 !important;
+  color: #5DBE71 !important;
+  font-size: 1.1rem !important;
+  padding: 18px 35px !important;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 25px;
+  flex-wrap: wrap;
 }
 
 .back-button {
