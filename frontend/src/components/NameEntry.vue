@@ -237,16 +237,20 @@ export default {
 
 .submit-button {
   margin-bottom: 20px;
+  box-shadow: 0 0 40px rgba(255, 215, 0, 0.6), 0 8px 20px rgba(0, 0, 0, 0.4);
 }
 
 .submit-button:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
   box-shadow: none;
+  transform: none;
 }
 
 .submit-button:disabled:hover {
   transform: none;
+  box-shadow: none;
+  background: linear-gradient(135deg, rgba(116, 0, 1, 0.95), rgba(174, 0, 1, 0.95));
 }
 
 .hint {

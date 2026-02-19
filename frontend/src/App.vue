@@ -10,10 +10,20 @@
       <div v-for="n in 30" :key="'particle-' + n" class="particle" :style="getParticleStyle(n)"></div>
     </div>
 
-    <!-- Music Control -->
-    <button class="music-toggle" @click="toggleMusic" :class="{ playing: musicPlaying }">
-      {{ musicPlaying ? '🔊' : '🔇' }}
-    </button>
+    <!-- Music Control and Navigation -->
+    <div class="top-controls">
+      <button 
+        v-if="currentScreen !== 'welcome'" 
+        class="home-button" 
+        @click="goHome"
+        title="Return to Welcome Screen"
+      >
+        🏠 HOME
+      </button>
+      <button class="music-toggle" @click="toggleMusic" :class="{ playing: musicPlaying }" title="Toggle Music">
+        {{ musicPlaying ? '🔊' : '🔇' }}
+      </button>
+    </div>
 
     <!-- Main Content -->
     <transition name="fade" mode="out-in">
@@ -41,6 +51,7 @@
       <MazeGame 
         v-else-if="currentScreen === 'maze'" 
         @back="showResult"
+        @home="restart"
       />
     </transition>
   </div>
@@ -110,6 +121,17 @@ export default {
       currentScreen.value = 'welcome'
     }
 
+    const goHome = () => {
+      // Confirm before going home if user has progress
+      if (currentScreen.value === 'maze' || currentScreen.value === 'result') {
+        if (confirm('Return to home? Your current progress will be lost.')) {
+          restart()
+        }
+      } else {
+        restart()
+      }
+    }
+
     const startMaze = () => {
       currentScreen.value = 'maze'
     }
@@ -157,6 +179,7 @@ export default {
       startSorting,
       showResult,
       restart,
+      goHome,
       startMaze,
       toggleMusic,
       getStarStyle,
@@ -205,14 +228,41 @@ export default {
   height: 100%;
 }
 
-.music-toggle {
+.top-controls {
   position: fixed;
   top: 20px;
   right: 20px;
   z-index: 1000;
+  display: flex;
+  gap: 15px;
+}
+
+.home-button {
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  background: rgba(26, 26, 46, 0.9);
+  border: 3px solid #FFD700;
+  border-radius: 10px;
+  padding: 12px 24px;
+  color: #FFD700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
+
+.home-button:hover {
+  background: rgba(255, 215, 0, 0.2);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.7);
+  transform: translateY(-2px);
+}
+
+.music-toggle {
   font-size: 2rem;
-  background: rgba(26, 26, 46, 0.8);
-  border: 2px solid #FFD700;
+  background: rgba(26, 26, 46, 0.9);
+  border: 3px solid #FFD700;
   border-radius: 50%;
   width: 60px;
   height: 60px;
@@ -221,16 +271,17 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
 }
 
 .music-toggle:hover {
-  background: rgba(26, 26, 46, 1);
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+  background: rgba(255, 215, 0, 0.2);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.7);
   transform: scale(1.1);
 }
 
 .music-toggle.playing {
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
+  box-shadow: 0 0 25px rgba(255, 215, 0, 0.8);
   animation: pulse 2s infinite;
 }
 
