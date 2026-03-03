@@ -526,7 +526,8 @@ export default {
   font-style: italic;
 }
 
-.win-stats {116, 0, 1, 0.95), rgba(174, 0, 1, 0.95));
+.win-stats {
+  background: linear-gradient(135deg, rgba(116, 0, 1, 0.95), rgba(174, 0, 1, 0.95));
   border: 3px solid #FFD700;
   font-size: 1.1rem;
   padding: 15px 35px;
@@ -555,7 +556,10 @@ export default {
   }
   
   .game-stats {
-    justify-content: center
+    justify-content: center;
+  }
+}
+
 .win-stat {
   background: rgba(93, 190, 113, 0.2);
   border: 2px solid #5DBE71;
